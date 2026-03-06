@@ -1,5 +1,5 @@
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # ==========================================
 # 1. Contrats de l'Agent Analyste
@@ -53,6 +53,14 @@ class ResumeTransformation(BaseModel):
     etapes_automatisees: List[str]
     etapes_conservees_humaines: List[str]
 
+    @model_validator(mode='after')
+    def check_not_all_empty(self) -> 'ResumeTransformation':
+        total = (len(self.etapes_eliminees) +
+                 len(self.etapes_automatisees) +
+                 len(self.etapes_conservees_humaines))
+        if total == 0:
+            raise ValueError("Au moins une étape doit être classifiée dans la transformation.")
+        return self
 class WorkflowOptimise(BaseModel):
     titre_workflow: str
     description_transformation: str = Field(..., description="Résumé en 2 phrases du changement de paradigme architectural")
