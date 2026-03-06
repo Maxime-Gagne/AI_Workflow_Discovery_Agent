@@ -106,13 +106,13 @@ if selected_source:
         st.markdown(f"### {source_info['icon']} Source : **{source_info['title']}**")
 
         # Routage de l'ingestion de données
-        if source_info["key"] == "custom_upload" and isinstance(raw_data, list):
-            st.text("Exécution du DataEngine (Clustering HDBSCAN)...")
-            engine = DataEngine(embedding_model='all-MiniLM-L6-v2')
-            # Configuration par défaut pour un CSV standard
-            mapping_config = {'ticket_id': 'id', 'description': 'content', 'created_at': 'timestamp_start', 'resolved_at': 'timestamp_end'}
-            payload = engine.process_pipeline(raw_data, mapping_config, source_name=source_info["title"])
+        if source_info["key"] == "custom_upload":
+            # Upload CSV/JSON — DataEngine activé (raw_data sera assigné via uploader)
+            st.info("Fonctionnalité upload à brancher — assignez raw_data depuis st.file_uploader.")
+            raw_data = None
         else:
+            # FIX: charger le JSON pré-défini et l'assigner à raw_data
+            raw_data = load_json(source_info["file"])
             st.text("Ingestion du payload JSON hiérarchique...")
             payload = raw_data
 
@@ -193,8 +193,6 @@ if selected_source:
             st.markdown(f"<br>**Processus :** {diag.description}", unsafe_allow_html=True)
 
             st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.markdown("### 🗺 Workflow optimisé")
-            st.markdown(f"*{wf.description_transformation}*")
             st.markdown("### 🗺 Workflow optimisé")
             st.markdown(f"*{wf.description_transformation}*")
 

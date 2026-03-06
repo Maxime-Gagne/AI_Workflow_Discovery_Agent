@@ -1,6 +1,7 @@
 import os
 import instructor
 from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 from schemas import DiagnosticAnalyste, WorkflowOptimise
 
@@ -21,11 +22,11 @@ def map_workflow(diagnostic: DiagnosticAnalyste) -> WorkflowOptimise:
 Génère le nouveau workflow optimisé selon le schéma requis."""
 
     workflow = client.chat.completions.create(
-        model="gemini-3.0-flash",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message}
-        ],
+        model="gemini-2.5-flash",                          # FIX: gemini-3.0-flash n'existe pas
+        messages=[{"role": "user", "content": user_message}],
+        config=types.GenerateContentConfig(                # FIX: system_instruction via config, pas role "system"
+            system_instruction=SYSTEM_PROMPT,
+        ),
         response_model=WorkflowOptimise,
     )
 
