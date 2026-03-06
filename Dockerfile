@@ -1,9 +1,14 @@
 # Utilise une image Python légère
 FROM python:3.10-slim
 
-# Installe Graphviz (requis pour tes schémas de workflow)
+# Évite la création de fichiers .pyc et force l'affichage des logs en temps réel
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Installation des dépendances système (Graphviz est critique pour workflow_viz.py)
 RUN apt-get update && apt-get install -y \
     graphviz \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Définit le dossier de travail
