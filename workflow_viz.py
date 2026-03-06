@@ -1,21 +1,37 @@
+import re
 import graphviz
 from schemas import WorkflowOptimise
+
+def _sanitize(text: str) -> str:
+    """
+    Supprime ou remplace les caractères qui cassent le parser XML de Graphviz.
+    Les labels HTML de Graphviz ne supportent pas les entités Unicode non-ASCII
+    directement — on utilise des labels plain text à la place.
+    """
+    if not text:
+        return ""
+    # Tronquer les labels trop longs
+    if len(text) > 40:
+        text = text[:38] + ".."
+    return text
 
 def render_workflow(workflow: WorkflowOptimise) -> bytes:
     """
     Génère une représentation visuelle (SVG) du workflow optimisé
     à partir du modèle Pydantic strict.
+    Utilise des labels plain text (pas HTML) pour éviter les erreurs
+    d'encodage XML avec les caractères accentués.
     """
-    # Configuration de l'architecture du graphe
     dot = graphviz.Digraph(
-        comment='Workflow Optimisé',
+        comment='Workflow Optimise',
         format='svg',
         graph_attr={
-            'rankdir': 'TB',  # Top to Bottom
+            'rankdir': 'TB',
             'fontname': 'Helvetica',
             'nodesep': '0.5',
             'ranksep': '0.8',
-            'bgcolor': 'transparent'
+            'bgcolor': 'transparent',
+            'charset': 'utf-8',
         },
         node_attr={
             'fontname': 'Helvetica',
@@ -24,43 +40,46 @@ def render_workflow(workflow: WorkflowOptimise) -> bytes:
             'fillcolor': '#F8FAFC',
             'color': '#CBD5E1',
             'fontcolor': '#1E293B',
-            'penwidth': '2'
+            'penwidth': '2',
         },
         edge_attr={
             'fontname': 'Helvetica',
             'color': '#94A3B8',
             'fontsize': '10',
-            'penwidth': '1.5'
+            'penwidth': '1.5',
         }
     )
 
-    # Dictionnaire de mapping pour le typage visuel des noeuds
     type_colors = {
-        'humain': {'fillcolor': '#EFF6FF', 'color': '#3B82F6'},      # Bleu
-        'ia': {'fillcolor': '#F5F3FF', 'color': '#8B5CF6'},          # Violet
-        'automatique': {'fillcolor': '#ECFDF5', 'color': '#10B981'}, # Vert
-        'decision': {'fillcolor': '#FFFBEB', 'color': '#F59E0B', 'shape': 'diamond'} # Jaune
+        'trigger':     {'fillcolor': '#FEF3C7', 'color': '#F59E0B'},
+        'humain':      {'fillcolor': '#EFF6FF', 'color': '#3B82F6'},
+        'ia':          {'fillcolor': '#F5F3FF', 'color': '#8B5CF6'},
+        'automatique': {'fillcolor': '#ECFDF5', 'color': '#10B981'},
+        'decision':    {'fillcolor': '#FFFBEB', 'color': '#F59E0B', 'shape': 'diamond'},
+        'fin':         {'fillcolor': '#F1F5F9', 'color': '#64748B'},
     }
 
-    # 1. Génération des noeuds à partir de l'objet Pydantic
     for noeud in workflow.noeuds:
-        attrs = type_colors.get(noeud.type_noeud.lower(), {})
-        label = f"<<B>{noeud.label}</B><BR/>"
-        label += f"<FONT POINT-SIZE='10' COLOR='#64748B'>{noeud.type_noeud.upper()}</FONT>>"
+        ntype = noeud.type_noeud.lower()
+        attrs = type_colors.get(ntype, {})
+
+        # Label plain text sur 2 lignes : nom + type
+        # \n fonctionne en plain text, contrairement aux labels HTML avec accents
+        label = f"{_sanitize(noeud.label)}\n[{noeud.type_noeud.upper()}]"
 
         dot.node(
             str(noeud.id),
             label=label,
             shape=attrs.get('shape', 'box'),
             fillcolor=attrs.get('fillcolor', '#F8FAFC'),
-            color=attrs.get('color', '#CBD5E1')
+            color=attrs.get('color', '#CBD5E1'),
         )
 
-    # 2. Génération des arêtes (liens) à partir de l'objet Pydantic
     for lien in workflow.liens:
         edge_attrs = {}
-        if getattr(lien, 'condition', None):
-            edge_attrs['label'] = f" {lien.condition} "
+        condition = getattr(lien, 'condition', None)
+        if condition:
+            edge_attrs['label'] = f" {_sanitize(condition)} "
             edge_attrs['fontcolor'] = '#475569'
 
         dot.edge(str(lien.de), str(lien.vers), **edge_attrs)
