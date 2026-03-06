@@ -66,7 +66,6 @@ class WorkflowOptimise(BaseModel):
     description_transformation: str = Field(..., description="Résumé en 2 phrases du changement de paradigme architectural")
     noeuds: List[NoeudWorkflow]
     liens: List[LienWorkflow]
-    transformation_resume: ResumeTransformation
 
 # ==========================================
 # 3. Contrats de l'Agent Advisor

@@ -3,8 +3,7 @@ import instructor
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-from schemas import DiagnosticAnalyste, WorkflowOptimise
-
+from schemas import DiagnosticAnalyste, WorkflowOptimise, ResumeTransformation
 load_dotenv()
 api_key = os.getenv("GOOGLE_AI_STUDIO_KEY")
 
@@ -22,6 +21,27 @@ Une étape ne peut PAS apparaître dans deux listes à la fois.
 Si une étape est splittée en un noeud automatique ET un noeud humain (ex: scheduling auto + entretien humain),
 classe-la dans `etapes_conservees_humaines` car la partie humaine est conservée.
 """
+def compute_transformation(diagnostic, workflow):
+    all_etapes = {e.id for e in diagnostic.etapes_actuelles}
+
+    automatisees, humaines = set(), set()
+    for noeud in workflow.noeuds:
+        if not noeud.etape_originale:
+            continue
+        if noeud.type_noeud in ("automatique", "trigger"):
+            automatisees.add(noeud.etape_originale)
+        elif noeud.type_noeud == "humain":
+            humaines.add(noeud.etape_originale)
+
+    # Tiebreak : si une étape a un noeud humain, elle prime
+    automatisees -= humaines
+    eliminees = all_etapes - automatisees - humaines
+
+    return ResumeTransformation(
+        etapes_eliminees=sorted(eliminees),
+        etapes_automatisees=sorted(automatisees),
+        etapes_conservees_humaines=sorted(humaines),
+    )
 
 def map_workflow(diagnostic: DiagnosticAnalyste) -> WorkflowOptimise:
     native_client = genai.Client(api_key=api_key)
@@ -33,7 +53,7 @@ def map_workflow(diagnostic: DiagnosticAnalyste) -> WorkflowOptimise:
 Génère le nouveau workflow optimisé selon le schéma requis."""
 
     workflow = client.chat.completions.create(
-        model="gemini-2.5-flash",                          # FIX: gemini-3.0-flash n'existe pas
+        model="gemini-2.5-flash",
         messages=[{"role": "user", "content": user_message}],
         config=types.GenerateContentConfig(                # FIX: system_instruction via config, pas role "system"
             system_instruction=SYSTEM_PROMPT,
