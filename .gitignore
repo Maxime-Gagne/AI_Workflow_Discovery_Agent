@@ -1,0 +1,22 @@
+# Environnement et Secrets (CRITIQUE)
+.env
+.env.local
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Système
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Données temporaires
+*.log

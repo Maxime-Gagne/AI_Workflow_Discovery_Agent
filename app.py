@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from agent_analyst import analyze
-from agent_mapper import map_workflow
-from agent_advisor import advise
+from agents.agent_analyst import analyze
+from agents.agent_mapper import map_workflow
+from agents.agent_advisor import advise
 from data_engine import DataEngine
-from workflow_viz import render_workflow  # En attente de refactorisation
+from workflow_viz import render_workflow
 
 st.set_page_config(
     page_title="AI Workflow Discovery Agent",
@@ -135,10 +135,8 @@ if selected_source:
                 agent_card(col_a2, "🗺", "Mapper", "En attente…", "waiting")
                 agent_card(col_a3, "💡", "Advisor", "En attente…", "waiting")
 
-                # Optionnel : Ingestion DataEngine si pertinent
-                # engine = DataEngine(embedding_model='all-MiniLM-L6-v2')
-                # payload = engine.process_pipeline(raw_data, mapping_config, source_name=source_info["title"])
-                payload = raw_data # Simplifié pour la démo, remplace par l'appel DataEngine au besoin
+
+                payload = raw_data
 
                 diagnostic = analyze(payload, source_info["title"])
                 progress.progress(33, text="Agent Mapper en cours…")
