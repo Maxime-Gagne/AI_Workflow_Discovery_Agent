@@ -95,6 +95,13 @@ if selected_source:
     raw_data = None
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    # Aperçu des données de la source sélectionnée
+    if source_info.get("file"):
+        preview_data = load_json(source_info["file"])
+        with st.expander(f"👁 Aperçu des données — {source_info['title']}", expanded=True):
+            st.json(preview_data, expanded=False)
+
     col_info, col_launch = st.columns([3, 1])
 
     with col_info:
@@ -102,11 +109,9 @@ if selected_source:
 
         # Routage de l'ingestion de données
         if source_info["key"] == "custom_upload":
-            # Upload CSV/JSON — DataEngine activé (raw_data sera assigné via uploader)
-            st.info("Fonctionnalité upload à brancher — assignez raw_data depuis st.file_uploader.")
+            st.info("Fonctionnalité upload à brancher.")
             raw_data = None
         else:
-            # FIX: charger le JSON pré-défini et l'assigner à raw_data
             raw_data = load_json(source_info["file"])
             st.text("Ingestion du payload JSON hiérarchique...")
             payload = raw_data
@@ -138,9 +143,7 @@ if selected_source:
                 agent_card(col_a3, "💡", "Advisor", "En attente…", "waiting")
 
 
-                payload = raw_data
-
-                diagnostic = analyze(payload, source_info["title"])
+                diagnostic = analyze(raw_data, source_info["title"])
                 progress.progress(33, text="Agent Mapper en cours…")
 
                 agent_card(col_a1, "🔬", "Analyste", "Diagnostic terminé", "done")
@@ -191,9 +194,18 @@ if selected_source:
             st.markdown("### 🗺 Workflow optimisé")
             st.markdown(f"*{wf.description_transformation}*")
 
-            # Injection des octets SVG dans l'interface
-            svg_bytes = render_workflow(wf)
-            st.markdown(svg_bytes.decode("utf-8"), unsafe_allow_html=True)
+            # Injection du SVG dans un conteneur scrollable à hauteur fixe
+            try:
+                svg_bytes = render_workflow(wf)
+                svg_str = svg_bytes.decode("utf-8")
+                st.markdown(
+                    f"<div style='background:white; border-radius:12px; padding:16px; "
+                    f"border:1px solid #E2E8F0; overflow-x:auto; overflow-y:auto; "
+                    f"max-height:500px;'>{svg_str}</div>",
+                    unsafe_allow_html=True,
+                )
+            except Exception as e:
+                st.warning(f"Visualisation indisponible : {e}")
 
             st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
             st.markdown("### 💡 Recommandations Technologiques")
