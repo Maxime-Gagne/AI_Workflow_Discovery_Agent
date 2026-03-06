@@ -10,6 +10,8 @@ app_port: 7860
 
 (Scroll down pour la version française)
 
+<div align="center"> <img src="data/app_capture_1.png" width="900" alt="App Interface"> </div>
+
 # AI Workflow Discovery Agent
 
 This repository contains a hybrid business process analysis system. The architecture couples a deterministic clustering engine (NLP) with a multi-agent LLM inference pipeline to diagnose operational inefficiencies and design optimized automation architectures.
