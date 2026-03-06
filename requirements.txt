@@ -10,3 +10,4 @@ scikit-learn
 graphviz
 pandas
 numpy
+jsonref>=1.1.0
