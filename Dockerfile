@@ -1,5 +1,5 @@
 # Utilise une image Python légère
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Évite la création de fichiers .pyc et force l'affichage des logs en temps réel
 ENV PYTHONDONTWRITEBYTECODE=1
