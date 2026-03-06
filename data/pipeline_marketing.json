@@ -1,0 +1,39 @@
+{
+  "source": "Notion + Slack Export — Équipe Marketing",
+  "period": "30 derniers jours",
+  "equipe": 4,
+  "contenus_produits": 12,
+  "pipeline_contenu": [
+    {"etape": "Brief initial", "responsable": "Marketing Manager", "duree_moyenne_jours": 2.1, "action": "Rédaction manuelle dans Notion", "bloquants": ["Brief incomplet", "Manque de contexte SEO"]},
+    {"etape": "Validation du brief", "responsable": "Directeur Marketing", "duree_moyenne_jours": 1.8, "action": "Review async par Slack", "bloquants": ["Directeur indisponible", "Allers-retours fréquents"]},
+    {"etape": "Rédaction du contenu", "responsable": "Rédacteur", "duree_moyenne_jours": 4.5, "action": "Rédaction manuelle", "bloquants": ["Brief peu clair", "Recherche non fournie"]},
+    {"etape": "Révision interne (round 1)", "responsable": "Marketing Manager", "duree_moyenne_jours": 2.3, "action": "Commentaires dans Google Docs", "bloquants": ["Commentaires contradictoires", "Délais de retour"]},
+    {"etape": "Révision interne (round 2)", "responsable": "Rédacteur + Manager", "duree_moyenne_jours": 1.9, "action": "Corrections manuelles", "bloquants": ["3ème round nécessaire dans 40% des cas"]},
+    {"etape": "Validation légale/conformité", "responsable": "Équipe légale", "duree_moyenne_jours": 3.7, "action": "Email vers équipe légale", "bloquants": ["Délai SLA non respecté", "Demandes de clarification"]},
+    {"etape": "Mise en forme + visuels", "responsable": "Designer", "duree_moyenne_jours": 1.5, "action": "Création manuelle dans Canva/Figma", "bloquants": ["Brief visuel absent", "Attente assets"]},
+    {"etape": "Publication", "responsable": "Marketing Ops", "duree_moyenne_jours": 0.5, "action": "Publication manuelle sur CMS", "bloquants": ["Accès CMS limités", "Oubli de métadonnées SEO"]}
+  ],
+  "projets_recents": [
+    {"titre": "Article blog — Tendances IA 2024", "statut": "publié", "duree_reelle_jours": 19, "rounds_revision": 3, "retard_jours": 5},
+    {"titre": "Cas client — TechCorp", "statut": "en révision légale", "duree_reelle_jours": 14, "rounds_revision": 2, "retard_jours": 3},
+    {"titre": "Guide produit Q1", "statut": "rédaction en cours", "duree_reelle_jours": 7, "rounds_revision": 1, "retard_jours": 0},
+    {"titre": "Newsletter Février", "statut": "brief en validation", "duree_reelle_jours": 3, "rounds_revision": 0, "retard_jours": 2},
+    {"titre": "Webinar — Lancement Feature X", "statut": "publié", "duree_reelle_jours": 23, "rounds_revision": 4, "retard_jours": 8}
+  ],
+  "metriques": {
+    "duree_moyenne_pipeline_jours": 18.3,
+    "duree_cible_jours": 10,
+    "taux_respect_delai": "33%",
+    "rounds_revision_moyen": 2.6,
+    "etape_plus_couteuse": "Rédaction (4.5j) + Validation légale (3.7j)",
+    "cout_estime_par_contenu_heures": 18.5
+  },
+  "frictions": [
+    "Briefs incomplets génèrent des allers-retours coûteux en rédaction",
+    "Validation légale bloque le pipeline sans SLA clair",
+    "Aucune réutilisation des recherches entre contenus similaires",
+    "Métadonnées SEO souvent oubliées à la publication",
+    "Pas de calendrier éditorial centralisé — coordination par Slack uniquement",
+    "Designer ne reçoit pas de brief visuel — interprète le texte lui-même"
+  ]
+}

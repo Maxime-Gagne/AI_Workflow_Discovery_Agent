@@ -1,0 +1,78 @@
+/* assets/style.css */
+.stApp { background-color: #F8FAFC; }
+h1 { color: #1E293B !important; font-weight: 700 !important; }
+h2 { color: #334155 !important; }
+h3 { color: #475569 !important; }
+
+.source-card {
+    background: white;
+    border: 2px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.source-card:hover { border-color: #4F46E5; box-shadow: 0 4px 12px rgba(79,70,229,0.15); }
+.source-card.selected { border-color: #4F46E5; background: #EEF2FF; }
+.source-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.source-title { font-weight: 600; color: #1E293B; font-size: 0.95rem; }
+.source-subtitle { color: #64748B; font-size: 0.8rem; margin-top: 4px; }
+
+.agent-step {
+    background: white;
+    border-left: 4px solid #E2E8F0;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 8px 0;
+}
+.agent-step.active { border-left-color: #4F46E5; background: #EEF2FF; }
+.agent-step.done { border-left-color: #10B981; background: #F0FDF4; }
+
+.metric-card {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+}
+.metric-value { font-size: 1.8rem; font-weight: 700; color: #4F46E5; }
+.metric-label { color: #64748B; font-size: 0.85rem; margin-top: 4px; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.badge-green { background: #D1FAE5; color: #065F46; }
+.badge-yellow { background: #FEF3C7; color: #92400E; }
+.badge-red { background: #FEE2E2; color: #991B1B; }
+.badge-blue { background: #DBEAFE; color: #1E40AF; }
+
+.tool-chip {
+    display: inline-block;
+    background: #EEF2FF;
+    color: #4F46E5;
+    border: 1px solid #C7D2FE;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin: 2px;
+}
+
+.section-divider {
+    border: none;
+    border-top: 2px solid #E2E8F0;
+    margin: 24px 0;
+}
+
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}

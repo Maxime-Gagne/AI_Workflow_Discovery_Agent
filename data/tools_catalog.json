@@ -1,0 +1,137 @@
+[
+  {
+    "name": "Claude (Anthropic)",
+    "category": "Traitement NLP / IA",
+    "functions": ["classification", "résumé", "génération de texte", "scoring", "extraction d'entités"],
+    "use_cases": ["Triage automatique", "Rédaction de réponses", "Scoring de candidats", "Analyse de sentiment"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://anthropic.com"
+  },
+  {
+    "name": "Zapier",
+    "category": "Trigger & Intégration",
+    "functions": ["webhook", "automatisation", "routing", "notification"],
+    "use_cases": ["Déclenchement automatique", "Connexion entre apps", "Envoi d'emails automatiques"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://zapier.com"
+  },
+  {
+    "name": "Make (ex-Integromat)",
+    "category": "Trigger & Intégration",
+    "functions": ["webhook", "automatisation avancée", "transformation de données"],
+    "use_cases": ["Pipelines complexes", "Transformation de données entre systèmes"],
+    "complexity": "moyen",
+    "cost": "freemium",
+    "url": "https://make.com"
+  },
+  {
+    "name": "n8n",
+    "category": "Trigger & Intégration",
+    "functions": ["workflow automation", "self-hosted", "API orchestration"],
+    "use_cases": ["Automatisation open-source", "Contrôle total sur les données"],
+    "complexity": "élevé",
+    "cost": "gratuit (self-hosted)",
+    "url": "https://n8n.io"
+  },
+  {
+    "name": "Calendly",
+    "category": "Scheduling",
+    "functions": ["prise de rendez-vous", "disponibilités", "rappels automatiques"],
+    "use_cases": ["Scheduling d'entretiens", "Booking de démos", "Planification d'appels"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://calendly.com"
+  },
+  {
+    "name": "HubSpot",
+    "category": "CRM & Ventes",
+    "functions": ["gestion contacts", "pipeline", "email sequences", "scoring leads"],
+    "use_cases": ["Suivi candidats/clients", "Automatisation emails", "Pipeline de vente"],
+    "complexity": "moyen",
+    "cost": "freemium",
+    "url": "https://hubspot.com"
+  },
+  {
+    "name": "Notion AI",
+    "category": "Génération de contenu",
+    "functions": ["rédaction", "résumé", "structuration", "templates"],
+    "use_cases": ["Création de briefs", "Documentation automatique", "Résumés de réunions"],
+    "complexity": "faible",
+    "cost": "payant",
+    "url": "https://notion.so"
+  },
+  {
+    "name": "Slack (Workflow Builder)",
+    "category": "Communication & Notification",
+    "functions": ["notifications", "alertes", "routing d'équipe", "bots"],
+    "use_cases": ["Alertes en temps réel", "Assignation automatique", "Notifications d'étapes"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://slack.com"
+  },
+  {
+    "name": "SendGrid",
+    "category": "Communication & Notification",
+    "functions": ["envoi d'emails", "templates", "tracking", "bulk"],
+    "use_cases": ["Emails de confirmation", "Notifications candidats", "Suivi ouvertures"],
+    "complexity": "moyen",
+    "cost": "freemium",
+    "url": "https://sendgrid.com"
+  },
+  {
+    "name": "Airtable",
+    "category": "Data & Reporting",
+    "functions": ["base de données", "vues", "automatisations", "formulaires"],
+    "use_cases": ["Tracking de pipeline", "Dashboard opérationnel", "Consolidation de données"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://airtable.com"
+  },
+  {
+    "name": "Google Sheets + Apps Script",
+    "category": "Data & Reporting",
+    "functions": ["tableur", "scripts", "automatisation légère", "reporting"],
+    "use_cases": ["Reporting automatique", "Consolidation de métriques", "Alertes sur seuils"],
+    "complexity": "moyen",
+    "cost": "gratuit",
+    "url": "https://sheets.google.com"
+  },
+  {
+    "name": "Greenhouse / Lever",
+    "category": "Recrutement (ATS)",
+    "functions": ["suivi candidats", "pipeline RH", "scheduling", "scoring"],
+    "use_cases": ["Gestion des candidatures", "Automatisation du pipeline RH"],
+    "complexity": "élevé",
+    "cost": "payant",
+    "url": "https://greenhouse.io"
+  },
+  {
+    "name": "Typeform / Tally",
+    "category": "Collecte de données",
+    "functions": ["formulaires intelligents", "logique conditionnelle", "intégrations"],
+    "use_cases": ["Qualification entrante", "Collecte structurée d'info", "Onboarding"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://typeform.com"
+  },
+  {
+    "name": "Linear / Jira",
+    "category": "Gestion de projet / Dev",
+    "functions": ["tickets", "sprints", "backlog", "automatisations"],
+    "use_cases": ["Création automatique de tickets", "Routing de bugs", "Suivi de sprint"],
+    "complexity": "moyen",
+    "cost": "freemium",
+    "url": "https://linear.app"
+  },
+  {
+    "name": "Loom / Vidyard",
+    "category": "Communication async",
+    "functions": ["vidéo asynchrone", "feedback visuel", "onboarding"],
+    "use_cases": ["Feedback candidats", "Revues de code async", "Onboarding clients"],
+    "complexity": "faible",
+    "cost": "freemium",
+    "url": "https://loom.com"
+  }
+]
