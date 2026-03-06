@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 from google import genai
 import instructor
 
-# Nouvelle méthode 2026
-client = genai.Client(api_key="VOTRE_CLE")
-patched_client = instructor.from_gemini(client=client)
+# 1. Initialisation du client natif avec ta clé API (via st.secrets dans Streamlit)
+native_client = genai.Client(api_key=st.secrets["GOOGLE_AI_STUDIO_KEY"])
 
+# 2. Application du patch Instructor
+client = instructor.from_genai(native_client)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agents.agent_analyst import analyze
