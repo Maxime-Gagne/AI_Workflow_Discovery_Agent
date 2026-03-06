@@ -5,6 +5,12 @@ import sys
 import time
 import pandas as pd
 from dotenv import load_dotenv
+from google import genai
+import instructor
+
+# Nouvelle méthode 2026
+client = genai.Client(api_key="VOTRE_CLE")
+patched_client = instructor.from_gemini(client=client)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -58,7 +64,7 @@ with st.sidebar:
         st.stop()
 
     st.markdown("---")
-    st.markdown("### 🏗 Architecture\n**3 agents (Gemini 1.5 Flash) + Pydantic:**\n🔬 **Analyste**\n🗺 **Mapper**\n💡 **Advisor**")
+    st.markdown("### 🏗 Architecture\n**3 agents (Gemini 3.1) + Pydantic:**\n🔬 **Analyste**\n🗺 **Mapper**\n💡 **Advisor**")
 
 st.markdown("""
 <div style='padding: 32px 0 16px 0;'>
