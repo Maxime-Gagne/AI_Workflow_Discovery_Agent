@@ -60,7 +60,19 @@ with st.sidebar:
         st.stop()
 
     st.markdown("---")
-    st.markdown("### 🏗 Architecture\n**3 agents (Gemini 3.1) + Pydantic:**\n🔬 **Analyste**\n🗺 **Mapper**\n💡 **Advisor**")
+    st.markdown("""
+### How it works
+
+**1. Pick a data source**
+Choose one of the three pre-loaded business datasets, or bring your own CSV/JSON.
+
+**2. Preview the data**
+After selecting a source, expand the data preview to inspect what the agent will analyze.
+
+**3. Run the pipeline**
+Click **🚀 Launch analysis** to start the 3-agent pipeline — Analyst → Mapper → Advisor.
+Results include a process diagnosis, an optimized workflow diagram, and tool recommendations.
+""")
 
 st.markdown("""
 <div style='padding: 32px 0 16px 0;'>

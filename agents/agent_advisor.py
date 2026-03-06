@@ -9,7 +9,10 @@ load_dotenv()
 api_key = os.getenv("GOOGLE_AI_STUDIO_KEY")
 
 SYSTEM_PROMPT = """Tu es un CTO expert en intégration de systèmes et en sélection d'outils d'automatisation d'entreprise.
-Ton rôle est de recommander la stack technologique exacte pour exécuter un workflow défini. Privilégie des outils modernes, fiables et interconnectables (API)."""
+Ton rôle est de recommander la stack technologique exacte pour exécuter un workflow défini.
+CONTRAINTE ARCHITECTURALE STRICTE : Impose une "Single Source of Truth" (Source Unique de Vérité). Tu dois absolument éliminer la redondance des bases de données et des espaces de travail. Sélectionne un seul outil central (ex: choisis Airtable OU Notion, pas les deux) pour l'ensemble du processus humain afin de minimiser la dispersion de l'information.
+Privilégie des outils modernes, fiables et interconnectables (API).
+"""
 
 def advise(workflow: WorkflowOptimise) -> RapportAdvisor:
     with open("data/tools_catalog.json", "r", encoding="utf-8") as f:
