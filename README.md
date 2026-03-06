@@ -10,7 +10,12 @@ app_port: 7860
 
 (Scroll down pour la version française)
 
+<<<<<<< HEAD
 <div align="center"> <img src="data/app_capture_1.png" width="900" alt="App Interface"> </div>
+=======
+---
+<div align="center"> <img src="data/app_capture_1.png" width="900" alt="Interface"> </div>
+>>>>>>> 29b79fded7531b253d741e0e87ec03643306cff7
 
 # AI Workflow Discovery Agent
 
