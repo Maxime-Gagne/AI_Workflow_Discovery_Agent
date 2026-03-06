@@ -8,11 +8,6 @@ from dotenv import load_dotenv
 from google import genai
 import instructor
 
-# 1. Initialisation du client natif avec ta clé API (via st.secrets dans Streamlit)
-native_client = genai.Client()
-
-# 2. Application du patch Instructor
-client = instructor.from_genai(native_client)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agents.agent_analyst import analyze
