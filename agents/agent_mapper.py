@@ -53,7 +53,7 @@ def map_workflow(diagnostic: DiagnosticAnalyste) -> WorkflowOptimise:
 Génère le nouveau workflow optimisé selon le schéma requis."""
 
     workflow = client.chat.completions.create(
-        model="gemini-2.5-flash",
+        model="gemini-3.1-flash-lite-preview",
         messages=[{"role": "user", "content": user_message}],
         config=types.GenerateContentConfig(                # FIX: system_instruction via config, pas role "system"
             system_instruction=SYSTEM_PROMPT,

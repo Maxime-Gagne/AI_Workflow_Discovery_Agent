@@ -18,7 +18,7 @@ def analyze(condensed_payload: dict, source_label: str) -> DiagnosticAnalyste:
     user_message = f"Analyse ce processus (Source: {source_label}) : {condensed_payload}"
 
     diagnostic = client.chat.completions.create(
-        model="gemini-2.5-flash",                          # FIX: gemini-3.0-flash n'existe pas
+        model="gemini-3.1-flash-lite",                          # FIX: gemini-3.0-flash n'existe pas
         messages=[{"role": "user", "content": user_message}],
         config=types.GenerateContentConfig(                # FIX: system_instruction via config, pas role "system"
             system_instruction=SYSTEM_PROMPT,

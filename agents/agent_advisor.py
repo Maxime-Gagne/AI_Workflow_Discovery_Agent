@@ -30,7 +30,7 @@ Voici l'architecture du workflow optimisé :
 En te basant PRIORITAIREMENT sur le catalogue fourni, recommande la stack technique."""
 
     rapport = client.chat.completions.create(
-        model="gemini-2.5-flash",                          # FIX: gemini-3.0-flash n'existe pas
+        model="gemini-3.1-flash-lite-preview",                          # FIX: gemini-3.0-flash n'existe pas
         messages=[{"role": "user", "content": user_message}],
         config=types.GenerateContentConfig(                # FIX: system_instruction via config, pas role "system"
             system_instruction=SYSTEM_PROMPT,
