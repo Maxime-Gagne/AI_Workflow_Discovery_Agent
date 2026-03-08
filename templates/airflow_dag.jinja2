@@ -1,0 +1,59 @@
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.bash import BashOperator
+
+default_args = {
+    'owner': 'ai_workflow_agent',
+    'depends_on_past': False,
+    'start_date': datetime(2026, 1, 1),
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+# Fonctions cibles pour les opérateurs Python
+{% for task in tasks %}
+{% if task.operator in ['PythonOperator', 'BranchPythonOperator'] %}
+def execute_{{ task.task_id }}(**kwargs):
+    """
+    Exécution pour: {{ task.label }}
+    Description: {{ task.description }}
+    """
+    print("Exécution du noeud: {{ task.task_id }}")
+    {% if task.operator == 'BranchPythonOperator' %}
+    # TODO: Implémenter la logique d'évaluation conditionnelle
+    # Doit retourner le task_id du noeud cible sous forme de chaîne de caractères
+    pass
+    {% endif %}
+{% endif %}
+{% endfor %}
+
+with DAG(
+    '{{ dag_id }}',
+    default_args=default_args,
+    description='{{ description }}',
+    schedule_interval=None,
+    catchup=False,
+    tags=['generated', 'optimisation'],
+) as dag:
+
+    # Instanciation des noeuds
+{% for task in tasks %}
+    {{ task.task_id }} = {{ task.operator }}(
+        task_id='{{ task.task_id }}',
+        {% if task.operator == 'PythonOperator' or task.operator == 'BranchPythonOperator' %}
+        python_callable=execute_{{ task.task_id }},
+        {% elif task.operator == 'BashOperator' %}
+        bash_command='echo "Intervention humaine requise: {{ task.label }}"',
+        {% endif %}
+        doc_md='''{{ task.description }}'''
+    )
+{% endfor %}
+
+    # Définition des liens (Topologie du graphe)
+{% for dep in dependencies %}
+    {{ dep }}
+{% endfor %}

@@ -1,0 +1,35 @@
+{
+  "source": "Zendesk Export",
+  "period": "7 derniers jours",
+  "total_tickets": 20,
+  "tickets": [
+    {"id": "TK-1041", "category": "Facturation", "priority": "haute", "status": "résolu", "created": "2024-01-15 08:12", "resolved": "2024-01-15 14:45", "resolution_time_hours": 6.5, "agent": "Marie", "first_response_hours": 2.1, "tags": ["remboursement", "double-facturation"]},
+    {"id": "TK-1042", "category": "Bug technique", "priority": "critique", "status": "résolu", "created": "2024-01-15 09:03", "resolved": "2024-01-15 11:20", "resolution_time_hours": 2.3, "agent": "Jean", "first_response_hours": 0.5, "tags": ["login", "erreur-500"]},
+    {"id": "TK-1043", "category": "Facturation", "priority": "normale", "status": "résolu", "created": "2024-01-15 10:30", "resolved": "2024-01-16 09:00", "resolution_time_hours": 22.5, "agent": "Marie", "first_response_hours": 4.2, "tags": ["remboursement"]},
+    {"id": "TK-1044", "category": "Onboarding", "priority": "normale", "status": "résolu", "created": "2024-01-15 11:00", "resolved": "2024-01-15 13:00", "resolution_time_hours": 2.0, "agent": "Sophie", "first_response_hours": 1.0, "tags": ["configuration", "démarrage"]},
+    {"id": "TK-1045", "category": "Facturation", "priority": "haute", "status": "ouvert", "created": "2024-01-15 13:22", "resolved": null, "resolution_time_hours": null, "agent": "non-assigné", "first_response_hours": 8.0, "tags": ["annulation", "remboursement"]},
+    {"id": "TK-1046", "category": "Bug technique", "priority": "haute", "status": "résolu", "created": "2024-01-16 08:00", "resolved": "2024-01-16 10:30", "resolution_time_hours": 2.5, "agent": "Jean", "first_response_hours": 0.8, "tags": ["export-csv", "données-manquantes"]},
+    {"id": "TK-1047", "category": "Fonctionnalité", "priority": "basse", "status": "en-attente", "created": "2024-01-16 09:15", "resolved": null, "resolution_time_hours": null, "agent": "Sophie", "first_response_hours": 3.5, "tags": ["demande-feature", "intégration-api"]},
+    {"id": "TK-1048", "category": "Onboarding", "priority": "normale", "status": "résolu", "created": "2024-01-16 10:00", "resolved": "2024-01-16 11:45", "resolution_time_hours": 1.75, "agent": "Marie", "first_response_hours": 0.9, "tags": ["configuration", "SSO"]},
+    {"id": "TK-1049", "category": "Facturation", "priority": "haute", "status": "résolu", "created": "2024-01-16 11:30", "resolved": "2024-01-17 08:00", "resolution_time_hours": 20.5, "agent": "non-assigné", "first_response_hours": 6.0, "tags": ["remboursement", "litige"]},
+    {"id": "TK-1050", "category": "Bug technique", "priority": "normale", "status": "résolu", "created": "2024-01-16 14:00", "resolved": "2024-01-16 16:20", "resolution_time_hours": 2.3, "agent": "Jean", "first_response_hours": 1.2, "tags": ["performance", "lenteur"]},
+    {"id": "TK-1051", "category": "Facturation", "priority": "normale", "status": "ouvert", "created": "2024-01-17 08:45", "resolved": null, "resolution_time_hours": null, "agent": "non-assigné", "first_response_hours": 10.0, "tags": ["remboursement"]},
+    {"id": "TK-1052", "category": "Onboarding", "priority": "haute", "status": "résolu", "created": "2024-01-17 09:00", "resolved": "2024-01-17 12:00", "resolution_time_hours": 3.0, "agent": "Sophie", "first_response_hours": 1.5, "tags": ["migration-données", "configuration"]},
+    {"id": "TK-1053", "category": "Bug technique", "priority": "critique", "status": "ouvert", "created": "2024-01-17 10:15", "resolved": null, "resolution_time_hours": null, "agent": "Jean", "first_response_hours": 0.3, "tags": ["sécurité", "accès-non-autorisé"]},
+    {"id": "TK-1054", "category": "Fonctionnalité", "priority": "basse", "status": "fermé", "created": "2024-01-17 11:00", "resolved": "2024-01-18 09:00", "resolution_time_hours": 22.0, "agent": "Sophie", "first_response_hours": 5.0, "tags": ["demande-feature", "rapport-personnalisé"]},
+    {"id": "TK-1055", "category": "Facturation", "priority": "haute", "status": "résolu", "created": "2024-01-17 13:30", "resolved": "2024-01-18 10:00", "resolution_time_hours": 20.5, "agent": "Marie", "first_response_hours": 3.8, "tags": ["annulation", "remboursement", "litige"]},
+    {"id": "TK-1056", "category": "Onboarding", "priority": "normale", "status": "résolu", "created": "2024-01-18 08:30", "resolved": "2024-01-18 10:15", "resolution_time_hours": 1.75, "agent": "Sophie", "first_response_hours": 0.7, "tags": ["configuration"]},
+    {"id": "TK-1057", "category": "Bug technique", "priority": "haute", "status": "en-attente", "created": "2024-01-18 09:45", "resolved": null, "resolution_time_hours": null, "agent": "Jean", "first_response_hours": 1.1, "tags": ["intégration-api", "erreur-authentification"]},
+    {"id": "TK-1058", "category": "Facturation", "priority": "normale", "status": "ouvert", "created": "2024-01-18 11:00", "resolved": null, "resolution_time_hours": null, "agent": "non-assigné", "first_response_hours": 12.0, "tags": ["remboursement"]},
+    {"id": "TK-1059", "category": "Onboarding", "priority": "haute", "status": "résolu", "created": "2024-01-19 08:00", "resolved": "2024-01-19 11:30", "resolution_time_hours": 3.5, "agent": "Marie", "first_response_hours": 1.8, "tags": ["configuration", "formation"]},
+    {"id": "TK-1060", "category": "Bug technique", "priority": "normale", "status": "résolu", "created": "2024-01-19 10:00", "resolved": "2024-01-19 12:45", "resolution_time_hours": 2.75, "agent": "Jean", "first_response_hours": 0.9, "tags": ["dashboard", "données-incorrectes"]}
+  ],
+  "summary": {
+    "categories": {"Facturation": 8, "Bug technique": 7, "Onboarding": 5, "Fonctionnalité": 2},
+    "avg_resolution_hours": 7.2,
+    "avg_first_response_hours": 2.8,
+    "unassigned_tickets": 5,
+    "open_tickets": 5,
+    "top_tag": "remboursement"
+  }
+}

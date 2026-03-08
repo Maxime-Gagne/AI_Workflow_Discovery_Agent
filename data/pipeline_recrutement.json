@@ -1,0 +1,37 @@
+{
+  "source": "HubSpot Recrutement Export",
+  "period": "30 derniers jours",
+  "poste": "Développeur Full-Stack Senior",
+  "total_candidatures": 47,
+  "pipeline": [
+    {"etape": "CV reçu", "count": 47, "duree_moyenne_jours": 0, "action": "manuelle — lecture par RH", "taux_conversion": "100%"},
+    {"etape": "Screening CV", "count": 31, "duree_moyenne_jours": 3.2, "action": "manuelle — évaluation par RH", "taux_conversion": "66%"},
+    {"etape": "Appel de qualification (15 min)", "count": 18, "duree_moyenne_jours": 5.8, "action": "manuelle — scheduling par email", "taux_conversion": "58%"},
+    {"etape": "Test technique", "count": 11, "duree_moyenne_jours": 8.4, "action": "envoi manuel du lien de test", "taux_conversion": "61%"},
+    {"etape": "Entretien technique (1h)", "count": 7, "duree_moyenne_jours": 13.1, "action": "manuelle — coordination calendriers", "taux_conversion": "64%"},
+    {"etape": "Entretien RH final", "count": 5, "duree_moyenne_jours": 16.7, "action": "manuelle — scheduling multi-parties", "taux_conversion": "71%"},
+    {"etape": "Offre envoyée", "count": 3, "duree_moyenne_jours": 22.3, "action": "manuelle — rédaction et envoi", "taux_conversion": "60%"},
+    {"etape": "Offre acceptée", "count": 1, "duree_moyenne_jours": 27.1, "action": "manuelle — onboarding initié", "taux_conversion": "33%"}
+  ],
+  "candidats": [
+    {"id": "C-001", "nom": "Alex M.", "etape_actuelle": "Test technique", "jours_dans_etape": 6, "derniere_action": "Test envoyé — pas de réponse", "source": "LinkedIn", "score_cv": null},
+    {"id": "C-002", "nom": "Priya S.", "etape_actuelle": "Entretien technique", "jours_dans_etape": 2, "derniere_action": "Entretien planifié demain", "source": "Referral", "score_cv": null},
+    {"id": "C-003", "nom": "Marc D.", "etape_actuelle": "Appel de qualification", "jours_dans_etape": 9, "derniere_action": "3 emails sans réponse", "source": "Indeed", "score_cv": null},
+    {"id": "C-004", "nom": "Julie T.", "etape_actuelle": "Screening CV", "jours_dans_etape": 4, "derniere_action": "CV non encore lu", "source": "LinkedIn", "score_cv": null},
+    {"id": "C-005", "nom": "Omar K.", "etape_actuelle": "Entretien RH final", "jours_dans_etape": 1, "derniere_action": "Scheduling en cours — 4 participants", "source": "Referral", "score_cv": null}
+  ],
+  "frictions": [
+    "Délai moyen de 3.2 jours entre réception CV et premier contact",
+    "5 candidats fantômes au stade appel de qualification (emails sans réponse)",
+    "Coordination calendriers pour entretien technique prend en moyenne 4 jours",
+    "Aucun scoring automatique des CVs — entièrement subjectif",
+    "Candidats non retenus ne reçoivent pas de feedback (mauvaise expérience candidat)",
+    "Taux de perte élevé entre offre envoyée et offre acceptée (67%)"
+  ],
+  "summary": {
+    "duree_totale_pipeline_jours": 27.1,
+    "taux_conversion_global": "2.1%",
+    "etape_la_plus_longue": "Entretien technique (13.1j cumulé)",
+    "principale_friction": "Scheduling manuel multi-parties"
+  }
+}
