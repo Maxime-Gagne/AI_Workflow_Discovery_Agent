@@ -1,5 +1,133 @@
-from typing import List, Optional, Literal, Dict
-from pydantic import BaseModel, Field, model_validator
+from __future__ import annotations
+from typing import List, Optional, Literal, Dict, Union
+from pydantic import BaseModel, Field, model_validator, field_validator
+from typing import Literal, Optional, Union
+
+
+ConfidenceLevel = Literal["provided", "observed", "estimated", "missing"]
+
+
+class TimeMetric(BaseModel):
+    """
+    Représente une métrique temporelle avec son niveau de confiance.
+    """
+    name: str = Field(..., description="Nom canonique de la métrique")
+    unit: str = Field(..., description="Unité de mesure, ex: minutes, hours, cases/month")
+    value: Optional[Union[float, int, str]] = Field(
+        default=None,
+        description="Valeur de la métrique si disponible"
+    )
+    confidence_level: ConfidenceLevel = Field(
+        ...,
+        description="Niveau de confiance de la métrique"
+    )
+    source: str = Field(
+        ...,
+        description="Origine de la métrique: user_input, event_log, pm4py, rule_engine, etc."
+    )
+    hypothesis: Optional[str] = Field(
+        default=None,
+        description="Hypothèse explicite si la métrique est dérivée"
+    )
+    notes: list[str] = Field(
+        default_factory=list,
+        description="Remarques, limites, précisions"
+    )
+
+    @field_validator("name", "unit", "source")
+    @classmethod
+    def validate_non_empty_str(cls, v: str) -> str:
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("Champ texte vide ou invalide.")
+        return v.strip()
+
+    @field_validator("notes")
+    @classmethod
+    def validate_notes(cls, v: list[str]) -> list[str]:
+        cleaned = []
+        for note in v:
+            if not isinstance(note, str) or not note.strip():
+                raise ValueError("Une note est vide ou invalide.")
+            cleaned.append(note.strip())
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_consistency(self) -> "TimeMetric":
+        if self.confidence_level == "missing":
+            if self.value is not None:
+                raise ValueError("Une métrique 'missing' ne doit pas avoir de value.")
+        else:
+            if self.value is None:
+                raise ValueError("Une métrique non 'missing' doit avoir une value.")
+
+        if self.confidence_level == "estimated":
+            if self.hypothesis is None or not self.hypothesis.strip():
+                raise ValueError("Une métrique 'estimated' doit documenter une hypothèse.")
+
+        return self
+
+
+class TimeMetricsReport(BaseModel):
+    """
+    Rapport structuré sur les métriques temporelles critiques du pipeline.
+    """
+    monthly_volume: TimeMetric
+    activity_duration_minutes: TimeMetric
+    case_cycle_time_minutes: TimeMetric
+    manual_time_minutes: TimeMetric
+    waiting_time_minutes: TimeMetric
+
+    warnings: list[str] = Field(default_factory=list)
+    can_compute_full_roi: bool = Field(
+        ...,
+        description="True si les métriques critiques sont suffisamment fiables pour un ROI complet"
+    )
+    can_compute_partial_roi: bool = Field(
+        ...,
+        description="True si un ROI partiel est possible avec avertissements"
+    )
+
+    @field_validator("warnings")
+    @classmethod
+    def validate_warnings(cls, v: list[str]) -> list[str]:
+        cleaned = []
+        for item in v:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError("Un warning est vide ou invalide.")
+            cleaned.append(item.strip())
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_roi_flags(self) -> "TimeMetricsReport":
+        critical_metrics = [
+            self.monthly_volume,
+            self.activity_duration_minutes,
+            self.manual_time_minutes,
+        ]
+
+        levels = [m.confidence_level for m in critical_metrics]
+
+        strong_ok = all(level in {"provided", "observed"} for level in levels)
+        partial_ok = all(level in {"provided", "observed", "estimated"} for level in levels) and not any(
+            level == "missing" for level in levels
+        )
+
+        if self.can_compute_full_roi and not strong_ok:
+            raise ValueError(
+                "can_compute_full_roi=True incohérent avec les niveaux de confiance critiques."
+            )
+
+        if self.can_compute_partial_roi and not partial_ok:
+            raise ValueError(
+                "can_compute_partial_roi=True incohérent avec les niveaux de confiance critiques."
+            )
+
+        if self.can_compute_full_roi and not self.can_compute_partial_roi:
+            raise ValueError(
+                "Un ROI complet implique nécessairement qu'un ROI partiel soit possible."
+            )
+
+        return self
 
 # ==========================================
 # 0. Analyse d'une source de données
@@ -107,4 +235,6 @@ class RapportAdvisor(BaseModel):
     stack_minimale: List[str] = Field(..., description="Liste des outils strictement essentiels pour un MVP")
     stack_complete: List[str] = Field(..., description="Liste de tous les outils pour la solution finale")
     conseil_implementation: str = Field(..., description="Conseil stratégique par où commencer (2-3 phrases)")
+
+# ==========================================
 

@@ -1,6 +1,6 @@
 import instructor
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from typing import List, Optional
 from google import genai
 import os
 
@@ -11,18 +11,16 @@ class AtomicAction(BaseModel):
     timestamp: Optional[str] = Field(description="Horodatage ISO 8601 si disponible, sinon null.")
     contexte_supp: Optional[str] = Field(description="Informations critiques (outils, blocages, tags).")
 
+
 class SourceQualityReport(BaseModel):
     is_processable: bool = Field(description="Vrai si le contenu décrit un processus métier identifiable.")
     detected_format: str = Field(description="Type de source identifiée (ex: Chat Log, CRM Export, Unstructured).")
     explanation: str = Field(description="Note technique sur la qualité et les transformations effectuées.")
     structured_data: List[AtomicAction] = Field(description="Liste intégrale des actions normalisées.")
 
+
 def refine_source_data(raw_content: str, api_key: str) -> SourceQualityReport:
-    """
-    Analyse et restructure l'intégralité de la source pour garantir l'atomicité.
-    """
     client = genai.Client(api_key=api_key)
-    # Utilisation d'instructor pour forcer le schéma Pydantic
     instr_client = instructor.from_gemini(client=client, mode=instructor.Mode.GEMINI_JSON)
 
     prompt = f"""
@@ -41,7 +39,7 @@ def refine_source_data(raw_content: str, api_key: str) -> SourceQualityReport:
     """
 
     response = instr_client.chat.completions.create(
-        model="gemini-1.5-flash-latest", # Ou gemini-2.0-flash-exp selon disponibilité
+        model="gemini-3.1-flash-lite-preview",
         response_model=SourceQualityReport,
         messages=[{"role": "user", "content": prompt}],
     )

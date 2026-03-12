@@ -40,19 +40,30 @@ MÉTRIQUES ROI DÉTERMINISTES :
 
 SOP_SYSTEM_PROMPT = """Tu es un ingénieur process expert en automatisation.
 Modélise un diagnostic structuré à partir de cette Procédure Opérationnelle Standard (SOP) textuelle.
+
 CONTRAINTES ARCHITECTURALES STRICTES :
 1. Extrais séquentiellement chaque étape (acteur, action, type).
-2. Déduis métriques de durée, volume et frictions du contexte sémantique.
-3. Estime mathématiquement GainsEstimes via le taux horaire fourni. Justifie dans detail_du_calcul."""
+2. N'invente jamais de durée, de volume, ni de métrique ROI.
+3. Si des métriques ROI déterministes sont fournies, injecte IMPÉRATIVEMENT leurs valeurs exactes dans GainsEstimes.
+4. Si aucune métrique ROI n'est fournie, limite-toi à un diagnostic structurel cohérent sans hallucination quantitative.
+"""
 
-def analyze_sop(texte_brut: str, source_label: str, taux_horaire: float):
+def analyze_sop(
+    texte_brut: str,
+    source_label: str,
+    taux_horaire: float,
+    roi_metrics: dict | None = None,
+):
     native_client = genai.Client(api_key=api_key)
     client = instructor.from_genai(native_client)
 
     user_message = f"""Source: {source_label}
 TAUX HORAIRE: {taux_horaire} $/h
 DOCUMENT SOP BRUT :
-{texte_brut}"""
+{texte_brut}
+MÉTRIQUES ROI DÉTERMINISTES :
+{roi_metrics if roi_metrics is not None else "AUCUNE"}
+    """
 
     start_time = time.perf_counter()
     diagnostic, raw_response = client.chat.completions.create_with_completion(

@@ -79,11 +79,8 @@ class DataEngine:
                 df.loc[mask, 'timestamp_end'] - df.loc[mask, 'timestamp_start']
             ).dt.total_seconds() / 60.0
 
-        if 'timestamp' in df.columns and 'duration_minutes' not in df.columns:
+        if 'timestamp' in df.columns:
             df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            df = df.sort_values('timestamp')
-            # Calcul de la différence entre l'action actuelle et la suivante
-            df['duration_minutes'] = df['timestamp'].diff().dt.total_seconds().fillna(0) / 60.0
 
         df = df.dropna(subset=['content']).reset_index(drop=True)
         return df
@@ -164,32 +161,10 @@ class DataEngine:
         return payload
 
     def compute_roi(self, payload: dict, taux_horaire: float) -> dict:
-        """
-        Calcule les métriques ROI de manière déterministe à partir du payload clusterisé.
-        Ce calcul est effectué AVANT l'inférence LLM pour éviter toute hallucination de chiffres.
-        """
-        clusters = payload.get("clusters_repetitifs", [])
-
-        # Somme des minutes perdues sur tous les clusters répétitifs
-        total_minutes_perdues = sum(
-            c.get("temps_total_perdu_minutes") or 0
-            for c in clusters
+        raise RuntimeError(
+            "DataEngine.compute_roi() est obsolète. "
+            "Utilise compute_roi_from_time_report() dans business_metrics.py."
         )
-
-        # Conversion en heures mensuelles (les données couvrent une période variable)
-        heures_perdues_mois = round(total_minutes_perdues / 60, 2)
-
-        # Calculs financiers déterministes
-        economies_mensuelles = round(heures_perdues_mois * taux_horaire, 2)
-        projection_annuelle = round(economies_mensuelles * 12, 2)
-
-        return {
-            "taux_horaire": taux_horaire,
-            "heures_perdues_par_mois": heures_perdues_mois,
-            "economies_mensuelles": economies_mensuelles,
-            "projection_annuelle": projection_annuelle,
-            "detail_calcul": f"{heures_perdues_mois}h × {taux_horaire}$/h = {economies_mensuelles}$/mois → {projection_annuelle}$/an"
-        }
 
     def process_pipeline(
         self,
@@ -200,13 +175,8 @@ class DataEngine:
         min_cluster_size: Optional[int] = None,
         epsilon: float = 0.5
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-
-        if mapping_config is None:
-            mapping_config = {}
-
-        df_norm = self.normalize(raw_data, mapping_config)
-        df_clustered = self.vectorize_and_cluster(df_norm, min_cluster_size, epsilon)
-        payload = self.generate_payload(df_clustered, source_name)
-        roi = self.compute_roi(payload, taux_horaire)
-
-        return payload, roi
+        raise RuntimeError(
+            "DataEngine.process_pipeline() est obsolète. "
+            "Le pipeline doit appeler séparément: normalize() -> vectorize_and_cluster() "
+            "-> generate_payload(), puis AgentTemps + business_metrics."
+        )

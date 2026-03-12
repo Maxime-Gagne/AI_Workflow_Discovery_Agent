@@ -12,3 +12,4 @@ graphviz
 pandas
 numpy
 jsonref>=1.1.0
+pm4py

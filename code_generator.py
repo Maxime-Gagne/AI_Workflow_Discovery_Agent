@@ -25,6 +25,8 @@ def generate_airflow_dag(workflow: WorkflowOptimise) -> str:
             operator = "EmptyOperator"
         elif noeud.type_noeud == "automatique":
             operator = "PythonOperator"
+        elif noeud.type_noeud == "ia":
+            operator = "PythonOperator"
         elif noeud.type_noeud == "humain":
             operator = "BashOperator"
         elif noeud.type_noeud == "decision":
@@ -32,7 +34,7 @@ def generate_airflow_dag(workflow: WorkflowOptimise) -> str:
         elif noeud.type_noeud == "fin":
             operator = "EmptyOperator"
         else:
-            operator = "EmptyOperator"
+            raise ValueError(f"type_noeud non supporté pour le codegen DAG: {noeud.type_noeud}")
 
         tasks.append({
             "task_id": task_id,
