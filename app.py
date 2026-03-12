@@ -33,6 +33,13 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+if "view" not in st.session_state:
+    st.session_state["view"] = "input"
+
+if "results" not in st.session_state:
+    st.session_state["results"] = None
+
+DEBUG_MODE = False
 
 # Chargement propre du CSS
 def load_css(file_name):
@@ -57,9 +64,177 @@ SOURCES = [
     {"key": "tickets_support", "icon": "🎫", "title": "Customer Support", "subtitle": "Export Zendesk — 20 tickets", "file": "tickets_support.json"},
     {"key": "recrutement_pipeline", "icon": "👥", "title": "RH Recrutement", "subtitle": "HubSpot Pipeline — 47 applications", "file": "pipeline_recrutement.json"},
     {"key": "marketing_pipeline", "icon": "📝", "title": "Marketing Content", "subtitle": "Notion + Slack — 12 contents", "file": "pipeline_marketing.json"},
-    {"key": "sop_text", "icon": "📄", "title": "Procedure (SOP)", "subtitle": "raw text (Analyse LLM directe)", "file": None},
+    {"key": "sop_text", "icon": "📄", "title": "Procedure (SOP)", "subtitle": "Raw text (Direct LLM analysis)", "file": None},
     {"key": "custom_upload", "icon": "📂", "title": "Personalized Data", "subtitle": "Upload CSV/JSON (DataEngine)", "file": None}
 ]
+
+def render_results_page(results, source_info):
+    diag = results["diagnosis"]
+    wf = results["workflow"]
+    rec = results["recommendations"]
+    time_report = results.get("time_report")
+
+    def format_metric_value(value, suffix=""):
+        if value is None:
+            return "N/A"
+        return f"{value}{suffix}"
+
+    def get_roi_display_state(time_report):
+        if time_report is None:
+            return "unavailable"
+        if time_report.can_compute_full_roi:
+            return "full"
+        if time_report.can_compute_partial_roi:
+            return "partial"
+        return "unavailable"
+
+    roi_state = get_roi_display_state(time_report)
+
+    top_left, top_right = st.columns([5, 1])
+    with top_left:
+        st.markdown(
+            f"""
+            <div style='padding: 16px 0 8px 0;'>
+                <h1 style='font-size: 2rem; margin-bottom: 4px;'>📈 Analysis Results</h1>
+                <p style='color: #64748B; font-size: 1rem;'>Source: {source_info['title']}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with top_right:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("← Back", use_container_width=True):
+            st.session_state["view"] = "input"
+            st.rerun()
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown("### 📊 Current Process Diagnosis")
+
+    heures_mois = diag.gains_estimes.heures_economisees_par_mois
+    economies_mois = diag.gains_estimes.economies_mensuelles_devise
+    projection_annuelle = diag.gains_estimes.projection_annuelle
+    roi_retour = diag.gains_estimes.mois_retour_investissement
+    detail_calcul = diag.gains_estimes.detail_du_calcul
+
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    with col_m1:
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{diag.metriques_cles.taux_manuel}</div><div class='metric-label'>Manual workload</div></div>",
+            unsafe_allow_html=True,
+        )
+    with col_m2:
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{format_metric_value(heures_mois, 'h')}</div><div class='metric-label'>Time saved / month</div></div>",
+            unsafe_allow_html=True,
+        )
+    with col_m3:
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{format_metric_value(economies_mois, ' $')}</div><div class='metric-label'>Monthly savings</div></div>",
+            unsafe_allow_html=True,
+        )
+    with col_m4:
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-value'><span class='badge badge-blue'>{diag.potentiel_automatisation.upper()}</span></div><div class='metric-label'>Automation potential</div></div>",
+            unsafe_allow_html=True,
+        )
+
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{format_metric_value(projection_annuelle, ' $')}</div><div class='metric-label'>Annual projection</div></div>",
+            unsafe_allow_html=True,
+        )
+    with col_r2:
+        roi_retour_txt = f"{roi_retour} months" if roi_retour else "N/A"
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{roi_retour_txt}</div><div class='metric-label'>Payback period</div></div>",
+            unsafe_allow_html=True,
+        )
+
+    if detail_calcul:
+        st.caption(f"📐 {detail_calcul}")
+
+    if roi_state == "full":
+        st.success("The estimated time savings are based on sufficiently solid operational data.")
+    elif roi_state == "partial":
+        st.info(
+            "The optimized workflow is reliable. The estimated time savings remain indicative and could be refined with additional operational data."
+        )
+    else:
+        st.info(
+            "The optimized workflow could be identified, but estimating time savings requires additional operational data."
+        )
+
+    st.markdown(f"<br>**Process:** {diag.description}", unsafe_allow_html=True)
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown("### 🗺 Optimized Workflow")
+    st.markdown(f"*{wf.description_transformation}*")
+
+    try:
+        svg_bytes = render_workflow(wf)
+        svg_str = svg_bytes.decode("utf-8")
+        st.markdown(
+            f"<div style='background:white; border-radius:12px; padding:16px; "
+            f"border:1px solid #E2E8F0; overflow-x:auto; overflow-y:auto; "
+            f"max-height:500px;'>{svg_str}</div>",
+            unsafe_allow_html=True,
+        )
+    except Exception as e:
+        st.warning(f"Workflow preview unavailable: {e}")
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown("### 💡 Recommended Technology Stack")
+
+    for r in rec.recommandations:
+        with st.expander(f"**{r.noeud_label}**"):
+            for outil in r.outils:
+                st.markdown(f"**{outil.nom}** ({outil.priorite}) — {outil.justification}")
+
+    st.info(f"💬 **Implementation advice:** {rec.conseil_implementation}")
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    col_export1, col_export2 = st.columns(2)
+
+    with col_export1:
+        st.download_button(
+            "⬇ Export full JSON",
+            data=json.dumps(
+                {
+                    "diagnosis": diag.model_dump(),
+                    "workflow": wf.model_dump(),
+                    "recommendations": rec.model_dump(),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            file_name=f"export_{source_info['key']}.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
+    with col_export2:
+        try:
+            airflow_dag_code = generate_airflow_dag(wf)
+            st.download_button(
+                label="🐍 Export Airflow DAG (.py)",
+                data=airflow_dag_code,
+                file_name=f"dag_{source_info['key']}.py",
+                mime="text/x-python",
+                use_container_width=True,
+            )
+        except Exception as e:
+            st.error(f"Error compiling Airflow DAG: {str(e)}")
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    with st.expander("⏱️ Execution Telemetry", expanded=False):
+        telemetry = results["telemetry"]
+        st.markdown(
+            f"**Total Latency:** {telemetry['total_latency_seconds']}s | **Total Tokens:** {telemetry['total_tokens']}"
+        )
+        st.json(telemetry["details"])
 
 with st.sidebar:
     st.markdown("## ⚙️ Configuration")
@@ -115,16 +290,25 @@ Once the source is loaded, a qualification step analyzes the entire dataset. If 
 Click 🚀 Launch analysis to trigger the asynchronous inference chain
 """)
 
+selected_source = st.session_state.get("selected_source", None)
+
+if st.session_state.get("view") == "results" and st.session_state.get("results"):
+    source_info = next(
+        (s for s in SOURCES if s["key"] == selected_source),
+        {"key": "unknown", "title": "Analysis"},
+    )
+    render_results_page(st.session_state["results"], source_info)
+    st.stop()
+
 st.markdown("""
 <div style='padding: 32px 0 16px 0;'>
     <h1 style='font-size: 2rem; margin-bottom: 4px;'>🔍 AI Workflow Discovery Agent</h1>
-    <p style='color: #64748B; font-size: 1.05rem;'>Analyse hybride (Moteur Déterministe + Inférence LLM)</p>
+    <p style='color: #64748B; font-size: 1.05rem;'>Hybrid analysis (Deterministic Engine + LLM Inference)</p>
 </div>
 <hr class='section-divider'>
 """, unsafe_allow_html=True)
 
 cols = st.columns(len(SOURCES))
-selected_source = st.session_state.get("selected_source", None)
 
 for i, source in enumerate(SOURCES):
     with cols[i]:
@@ -138,9 +322,15 @@ for i, source in enumerate(SOURCES):
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("✓ Selected" if is_selected else "Analyse →", key=f"btn_{source['key']}", use_container_width=True, type="primary" if is_selected else "secondary"):
+        if st.button(
+            "✓ Selected" if is_selected else "Analyze →",
+            key=f"btn_{source['key']}",
+            use_container_width=True,
+            type="primary" if is_selected else "secondary"
+        ):
             st.session_state["selected_source"] = source["key"]
             st.session_state["results"] = None
+            st.session_state["view"] = "input"
             st.rerun()
 
 if selected_source:
@@ -200,176 +390,106 @@ if selected_source:
         st.markdown("<br><br>", unsafe_allow_html=True)
         launch_btn = st.button("🚀 Launch Analysis", use_container_width=True, type="primary", disabled=(raw_data is None))
 
-    if launch_btn or st.session_state.get("results"):
-        if launch_btn:
-            st.session_state["results"] = None
+    if launch_btn:
+        st.session_state["results"] = None
 
         st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-        st.markdown("### ⚙️ Pipeline d'agents")
+        st.markdown("### ⚙️ Agent Pipeline")
         col_a1, col_a2, col_a3 = st.columns(3)
 
         def agent_card(col, icon, name, desc, status):
             with col:
-                if status == "done": st.success(f"{icon} **{name}** ✓\n\n{desc}")
-                elif status == "active": st.info(f"{icon} **{name}** ⏳\n\n{desc}")
-                else: st.markdown(f"<div class='agent-step'><strong>{icon} {name}</strong><br><small style='color:#94A3B8'>{desc}</small></div>", unsafe_allow_html=True)
-
-        if launch_btn and not st.session_state.get("results"):
-            progress = st.progress(0, text="Initialisation...")
-            tracker = MetricsTracker()
-
-            try:
-                agent_card(col_a1, "🔬", "Analyst", "Clustering & Diagnostic…", "active")
-                agent_card(col_a2, "🗺", "Mapper", "En attente…", "waiting")
-                agent_card(col_a3, "💡", "Advisor", "En attente…", "waiting")
-
-                taux_horaire = st.session_state.get("taux_horaire", 25.0)
-
-                # Variables communes pour éviter les UnboundLocal plus loin
-                time_report = None
-                time_warnings = []
-                time_precision_message = None
-                roi_metrics = None
-
-                def build_time_precision_message(time_report) -> str:
-                    metrics = [
-                        time_report.monthly_volume,
-                        time_report.activity_duration_minutes,
-                        time_report.case_cycle_time_minutes,
-                        time_report.manual_time_minutes,
-                        time_report.waiting_time_minutes,
-                    ]
-
-                    counts = {"provided": 0, "observed": 0, "estimated": 0, "missing": 0}
-                    for metric in metrics:
-                        counts[metric.confidence_level] += 1
-
-                    if counts["missing"] > 0:
-                        return (
-                            f"Résultat partiellement quantifié. "
-                            f"Temps fournis: {counts['provided']} | "
-                            f"observés: {counts['observed']} | "
-                            f"estimés: {counts['estimated']} | "
-                            f"manquants: {counts['missing']}. "
-                            f"Des informations temporelles supplémentaires amélioreraient la précision."
-                        )
-
-                    if counts["estimated"] > 0:
-                        return (
-                            f"Résultat approximatif. "
-                            f"Temps fournis: {counts['provided']} | "
-                            f"observés: {counts['observed']} | "
-                            f"estimés: {counts['estimated']}. "
-                            f"Certaines métriques ont été estimées par le pipeline."
-                        )
-
-                    return (
-                        f"Résultat précis. "
-                        f"Temps fournis: {counts['provided']} | "
-                        f"observés: {counts['observed']}."
+                if status == "done":
+                    st.success(f"{icon} **{name}** ✓\n\n{desc}")
+                elif status == "active":
+                    st.info(f"{icon} **{name}** ⏳\n\n{desc}")
+                else:
+                    st.markdown(
+                        f"<div class='agent-step'><strong>{icon} {name}</strong><br><small style='color:#94A3B8'>{desc}</small></div>",
+                        unsafe_allow_html=True,
                     )
 
-                def should_offer_time_override(time_report) -> bool:
-                    critical = [
-                        time_report.monthly_volume,
-                        time_report.activity_duration_minutes,
-                        time_report.manual_time_minutes,
+        progress = st.progress(0, text="Initializing...")
+        tracker = MetricsTracker()
+
+        try:
+            agent_card(col_a1, "🔬", "Analyst", "Clustering & diagnosis...", "active")
+            agent_card(col_a2, "🗺", "Mapper", "Waiting...", "waiting")
+            agent_card(col_a3, "💡", "Advisor", "Waiting...", "waiting")
+
+            taux_horaire = st.session_state.get("taux_horaire", 25.0)
+
+            time_report = None
+            time_warnings = []
+            time_precision_message = None
+            roi_metrics = None
+
+            def build_time_precision_message(time_report) -> str:
+                metrics = [
+                    time_report.monthly_volume,
+                    time_report.activity_duration_minutes,
+                    time_report.case_cycle_time_minutes,
+                    time_report.manual_time_minutes,
+                    time_report.waiting_time_minutes,
+                ]
+
+                counts = {"provided": 0, "observed": 0, "estimated": 0, "missing": 0}
+                for metric in metrics:
+                    counts[metric.confidence_level] += 1
+
+                if counts["missing"] > 0:
+                    return (
+                        f"Partially quantified result. "
+                        f"Provided: {counts['provided']} | "
+                        f"Observed: {counts['observed']} | "
+                        f"Estimated: {counts['estimated']} | "
+                        f"Missing: {counts['missing']}."
+                    )
+
+                if counts["estimated"] > 0:
+                    return (
+                        f"Approximate result. "
+                        f"Provided: {counts['provided']} | "
+                        f"Observed: {counts['observed']} | "
+                        f"Estimated: {counts['estimated']}."
+                    )
+
+                return (
+                    f"Precise result. "
+                    f"Provided: {counts['provided']} | "
+                    f"Observed: {counts['observed']}."
+                )
+
+            if source_info["key"] == "sop_text":
+                agent_card(col_a1, "🔬", "Analyst", "SOP extraction in progress...", "active")
+
+                user_metrics = {}
+
+                if not user_metrics:
+                    time_precision_message = (
+                        "SOP mode: no deterministic time metrics were provided. "
+                        "The diagnosis is structural only and quantitative estimates should be considered unavailable."
+                    )
+                    time_warnings = [
+                        "No user-provided time metrics were supplied for the SOP branch."
                     ]
-                    return any(metric.confidence_level == "missing" for metric in critical)
+                    roi_metrics = None
 
-                if source_info["key"] == "sop_text":
-                    agent_card(col_a1, "🔬", "Analyste", "SOP extraction in progress…", "active")
-
-                    # TODO: remplacer {} par un vrai petit formulaire Streamlit si tu veux autoriser
-                    # un chiffrage SOP assisté par l'utilisateur.
-                    user_metrics = {}
-
-                    if not user_metrics:
-                        time_precision_message = (
-                            "Mode SOP : aucun chiffrage temporel déterministe n’a été fourni. "
-                            "Le diagnostic est structurel uniquement et les estimations quantitatives doivent être considérées comme non disponibles."
-                        )
-                        time_warnings = [
-                            "Aucune métrique temporelle utilisateur fournie pour la branche SOP."
-                        ]
-                        roi_metrics = None
-
-                        diagnostic, lat_analyst, meta_analyst = analyze_sop(
-                            raw_data,
-                            source_info["title"],
-                            taux_horaire,
-                            roi_metrics=None,
-                        )
-                        validate_diagnostic_or_raise(diagnostic)
-                        diagnostic_warnings = audit_diagnostic(diagnostic)
-
-                    else:
-                        agent_temps = AgentTemps(use_business_hours=False)
-                        time_report = agent_temps.build_time_metrics_from_user_input(user_metrics)
-                        validate_time_metrics_report_or_raise(time_report)
-                        time_warnings = audit_time_metrics_report(time_report)
-                        time_precision_message = build_time_precision_message(time_report)
-
-                        roi_metrics = compute_roi_from_time_report(
-                            time_report=time_report,
-                            taux_horaire=taux_horaire,
-                            automation_rate=0.8,
-                            residual_manual_time_minutes=1.5,
-                        )
-                        validate_roi_metrics_or_raise(roi_metrics)
-
-                        diagnostic, lat_analyst, meta_analyst = analyze_sop(
-                            raw_data,
-                            source_info["title"],
-                            taux_horaire,
-                            roi_metrics=roi_metrics,
-                        )
-                        validate_diagnostic_or_raise(diagnostic, roi_metrics=roi_metrics)
-                        diagnostic_warnings = audit_diagnostic(diagnostic)
+                    diagnostic, lat_analyst, meta_analyst = analyze_sop(
+                        raw_data,
+                        source_info["title"],
+                        taux_horaire,
+                        roi_metrics=None,
+                    )
+                    validate_diagnostic_or_raise(diagnostic)
+                    diagnostic_warnings = audit_diagnostic(diagnostic)
 
                 else:
-                    if "engine" not in locals():
-                        engine = DataEngine()
-
                     agent_temps = AgentTemps(use_business_hours=False)
-
-                    # TODO: remplacer {} par de vrais inputs utilisateur quand tu ajouteras le formulaire
-                    user_metrics = {}
-
-                    resolved_time = resolve_time_context(
-                        raw_data=raw_data,
-                        user_metrics=user_metrics,
-                        source_key=source_info["key"],
-                    )
-
-                    if resolved_time.warnings:
-                        st.warning("\n".join(f"- {w}" for w in resolved_time.warnings))
-
-                    if resolved_time.requires_user_input:
-                        st.warning(resolved_time.user_message or "Informations temporelles insuffisantes.")
-                        st.stop()
-
-                    if resolved_time.mode == "provided" and resolved_time.timestamp_col is None:
-                        time_report = agent_temps.build_time_metrics_from_user_input(user_metrics)
-                    else:
-                        time_report = agent_temps.build_time_metrics_report(
-                            raw_data=resolved_time.normalized_data,
-                            user_metrics=user_metrics,
-                            case_id_col=resolved_time.case_id_col or "case_id",
-                            activity_col=resolved_time.activity_col or "activity",
-                            timestamp_col=resolved_time.timestamp_col or "timestamp",
-                            start_timestamp_col=resolved_time.start_timestamp_col,
-                            end_timestamp_col=resolved_time.end_timestamp_col,
-                        )
-
+                    time_report = agent_temps.build_time_metrics_from_user_input(user_metrics)
                     validate_time_metrics_report_or_raise(time_report)
                     time_warnings = audit_time_metrics_report(time_report)
                     time_precision_message = build_time_precision_message(time_report)
-
-                    st.info(time_precision_message)
-
-                    if time_warnings:
-                        st.warning("\n".join(f"- {w}" for w in time_warnings))
 
                     roi_metrics = compute_roi_from_time_report(
                         time_report=time_report,
@@ -379,252 +499,161 @@ if selected_source:
                     )
                     validate_roi_metrics_or_raise(roi_metrics)
 
-                    df_norm = engine.normalize(raw_data)
-                    df_clustered = engine.vectorize_and_cluster(df_norm, min_cluster_size, epsilon)
-                    payload = engine.generate_payload(df_clustered, source_info["title"])
-
-                    diagnostic, lat_analyst, meta_analyst = analyze(
-                        payload,
+                    diagnostic, lat_analyst, meta_analyst = analyze_sop(
+                        raw_data,
                         source_info["title"],
-                        roi_metrics,
+                        taux_horaire,
+                        roi_metrics=roi_metrics,
                     )
-
                     validate_diagnostic_or_raise(diagnostic, roi_metrics=roi_metrics)
                     diagnostic_warnings = audit_diagnostic(diagnostic)
 
-                tracker.record("Analyst", lat_analyst, meta_analyst)
-                progress.progress(33, text="Agent Mapper in progress…")
-
-                agent_card(col_a1, "🔬", "Analyst", "Diagnosis done", "done")
-                agent_card(col_a2, "🗺", "Mapper", "Construction of the workflow…", "active")
-
-                workflow, resume, lat_mapper, meta_mapper = map_workflow(diagnostic)
-                validate_workflow_or_raise(workflow, diagnostic=diagnostic)
-                workflow_warnings = audit_workflow(workflow, diagnostic=diagnostic)
-
-                tracker.record("Mapper", lat_mapper, meta_mapper)
-                progress.progress(66, text="Agent Advisor en cours…")
-
-                agent_card(col_a2, "🗺", "Mapper", "Built workflow", "done")
-                agent_card(col_a3, "💡", "Advisor", "Tools selection…", "active")
-
-                recommendations, lat_advisor, meta_advisor = advise(workflow)
-
-                tool_catalog = load_json("tools_catalog.json")
-                validate_advisor_report_or_raise(recommendations, workflow, tool_catalog)
-                advisor_warnings = audit_advisor_report(recommendations, workflow, tool_catalog)
-
-                tracker.record("Advisor", lat_advisor, meta_advisor)
-                progress.progress(100, text="Analyse complète ✓")
-
-                st.session_state["results"] = {
-                    "diagnosis": diagnostic,
-                    "workflow": workflow,
-                    "transformation_resume": resume,
-                    "recommendations": recommendations,
-                    "telemetry": tracker.get_summary(),
-                    "time_report": time_report,
-                    "time_warnings": time_warnings,
-                    "time_precision_message": time_precision_message,
-                    "diagnostic_warnings": diagnostic_warnings,
-                    "workflow_warnings": workflow_warnings,
-                    "advisor_warnings": advisor_warnings,
-                }
-                time.sleep(0.5)
-                st.rerun()
-
-            except Exception as e:
-                st.error(f"Engineering Error : {str(e)}")
-
-        if st.session_state.get("results"):
-            results = st.session_state["results"]
-            diag = results["diagnosis"]
-            wf = results["workflow"]
-            rec = results["recommendations"]
-            time_report = results.get("time_report")
-            time_warnings = results.get("time_warnings", [])
-            time_precision_message = results.get("time_precision_message")
-            diagnostic_warnings = results.get("diagnostic_warnings", [])
-            workflow_warnings = results.get("workflow_warnings", [])
-            advisor_warnings = results.get("advisor_warnings", [])
-
-
-
-            agent_card(col_a1, "🔬", "Analyst", "Diagnosis done ✓", "done")
-            agent_card(col_a2, "🗺", "Mapper", "Built workflow ✓", "done")
-            agent_card(col_a3, "💡", "Advisor", "Recommandations ready ✓", "done")
-
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.markdown("### ⏱️ Temporal Reliability & Precision")
-
-            if time_precision_message:
-                st.info(time_precision_message)
-
-            if time_warnings:
-                st.warning("\n".join(f"- {w}" for w in time_warnings))
-
-            if time_report is not None:
-                time_rows = [
-                    {
-                        "Metric": "Monthly volume",
-                        "Value": time_report.monthly_volume.value,
-                        "Unit": time_report.monthly_volume.unit,
-                        "Confidence": time_report.monthly_volume.confidence_level,
-                        "Source": time_report.monthly_volume.source,
-                        "Hypothesis": time_report.monthly_volume.hypothesis or "",
-                    },
-                    {
-                        "Metric": "Activity duration",
-                        "Value": time_report.activity_duration_minutes.value,
-                        "Unit": time_report.activity_duration_minutes.unit,
-                        "Confidence": time_report.activity_duration_minutes.confidence_level,
-                        "Source": time_report.activity_duration_minutes.source,
-                        "Hypothesis": time_report.activity_duration_minutes.hypothesis or "",
-                    },
-                    {
-                        "Metric": "Case cycle time",
-                        "Value": time_report.case_cycle_time_minutes.value,
-                        "Unit": time_report.case_cycle_time_minutes.unit,
-                        "Confidence": time_report.case_cycle_time_minutes.confidence_level,
-                        "Source": time_report.case_cycle_time_minutes.source,
-                        "Hypothesis": time_report.case_cycle_time_minutes.hypothesis or "",
-                    },
-                    {
-                        "Metric": "Manual time",
-                        "Value": time_report.manual_time_minutes.value,
-                        "Unit": time_report.manual_time_minutes.unit,
-                        "Confidence": time_report.manual_time_minutes.confidence_level,
-                        "Source": time_report.manual_time_minutes.source,
-                        "Hypothesis": time_report.manual_time_minutes.hypothesis or "",
-                    },
-                    {
-                        "Metric": "Waiting time",
-                        "Value": time_report.waiting_time_minutes.value,
-                        "Unit": time_report.waiting_time_minutes.unit,
-                        "Confidence": time_report.waiting_time_minutes.confidence_level,
-                        "Source": time_report.waiting_time_minutes.source,
-                        "Hypothesis": time_report.waiting_time_minutes.hypothesis or "",
-                    },
-                ]
-                st.dataframe(pd.DataFrame(time_rows), use_container_width=True)
-
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.markdown("### 📊 Diagnosis of the current process")
-
-            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-            with col_m1:
-                st.markdown(f"<div class='metric-card'><div class='metric-value'>{diag.metriques_cles.taux_manuel}</div><div class='metric-label'>Tâches manuelles</div></div>", unsafe_allow_html=True)
-            heures_mois = diag.gains_estimes.heures_economisees_par_mois
-            economies_mois = diag.gains_estimes.economies_mensuelles_devise
-            projection_annuelle = diag.gains_estimes.projection_annuelle
-            roi_retour = diag.gains_estimes.mois_retour_investissement
-            col_r1, col_r2 = st.columns(2)
-            with col_r1:
-                st.markdown(f"<div class='metric-card'><div class='metric-value'>{diag.gains_estimes.projection_annuelle} $</div><div class='metric-label'>Projection annuelle</div></div>", unsafe_allow_html=True)
-            with col_r2:
-                roi_retour = f"{diag.gains_estimes.mois_retour_investissement} mois" if diag.gains_estimes.mois_retour_investissement else "N/A"
-                st.markdown(f"<div class='metric-card'><div class='metric-value'>{roi_retour}</div><div class='metric-label'>Retour sur investissement</div></div>", unsafe_allow_html=True)
-
-            with col_m2:
-                st.markdown(
-                    f"<div class='metric-card'><div class='metric-value'>{heures_mois if heures_mois is not None else 'N/A'}"
-                    f"{'h' if heures_mois is not None else ''}</div><div class='metric-label'>Heures économisées/mois</div></div>",
-                    unsafe_allow_html=True,
-                )
-            with col_m3:
-                st.markdown(
-                    f"<div class='metric-card'><div class='metric-value'>{economies_mois if economies_mois is not None else 'N/A'}"
-                    f"{' $' if economies_mois is not None else ''}</div><div class='metric-label'>Économies mensuelles</div></div>",
-                    unsafe_allow_html=True,
-                )
-            with col_r1:
-                st.markdown(
-                    f"<div class='metric-card'><div class='metric-value'>{projection_annuelle if projection_annuelle is not None else 'N/A'}"
-                    f"{' $' if projection_annuelle is not None else ''}</div><div class='metric-label'>Projection annuelle</div></div>",
-                    unsafe_allow_html=True,
-                )
-            with col_r2:
-                roi_retour_txt = f"{roi_retour} mois" if roi_retour else "N/A"
-                st.markdown(
-                    f"<div class='metric-card'><div class='metric-value'>{roi_retour_txt}</div><div class='metric-label'>Retour sur investissement</div></div>",
-                    unsafe_allow_html=True,
-                )
-            with col_m4:
-                st.markdown(f"<div class='metric-card'><div class='metric-value'><span class='badge badge-blue'>{diag.potentiel_automatisation.upper()}</span></div><div class='metric-label'>Potentiel</div></div>", unsafe_allow_html=True)
-
-
-
-            st.caption(f"📐 {diag.gains_estimes.detail_du_calcul}")
-            st.markdown(f"<br>**Processus :** {diag.description}", unsafe_allow_html=True)
-
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.markdown("### 🗺 Workflow optimised")
-            st.markdown(f"*{wf.description_transformation}*")
-
-            try:
-                svg_bytes = render_workflow(wf)
-                svg_str = svg_bytes.decode("utf-8")
-                st.markdown(
-                    f"<div style='background:white; border-radius:12px; padding:16px; "
-                    f"border:1px solid #E2E8F0; overflow-x:auto; overflow-y:auto; "
-                    f"max-height:500px;'>{svg_str}</div>",
-                    unsafe_allow_html=True,
-                )
-            except Exception as e:
-                st.warning(f"Viewing unavailable : {e}")
-
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.markdown("### 💡 Technological Recommendations")
-            for r in rec.recommandations:
-                with st.expander(f"**{r.noeud_label}**"):
-                    for outil in r.outils:
-                        st.markdown(f"**{outil.nom}** ({outil.priorite}) - *{outil.justification}*")
-
-            st.info(f"💬 **Conseil d'implémentation :** {rec.conseil_implementation}")
-
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.download_button(
-                "⬇ Export JSON complet",
-                data=json.dumps({"diagnosis": diag.model_dump(), "workflow": wf.model_dump(), "recommendations": rec.model_dump()}, ensure_ascii=False, indent=2),
-                file_name=f"export_{source_info['key']}.json",
-                mime="application/json",
-                use_container_width=True
-            )
-            try:
-                airflow_dag_code = generate_airflow_dag(wf)
-                st.download_button(
-                    label="🐍 DAG Airflow Export(.py)",
-                    data=airflow_dag_code,
-                    file_name=f"dag_{source_info['key']}.py",
-                    mime="text/x-python",
-                    use_container_width=True
-                )
-            except Exception as e:
-                st.error(f"Error compiling Jinja2 Airflow DAG : {str(e)}")
-
-            # Affichage de la télémétrie
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            with st.expander("⏱️ Execution & Consumption Telemetry", expanded=False):
-                telemetry = results["telemetry"]
-                st.markdown(f"**Total Latency :** {telemetry['total_latency_seconds']}s | **Total Tokens :** {telemetry['total_tokens']}")
-                st.json(telemetry["details"])
-
-            st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-            st.markdown("### 🚨 Validation Warnings")
-
-            all_warnings = {
-                "Diagnostic": diagnostic_warnings,
-                "Workflow": workflow_warnings,
-                "Advisor": advisor_warnings,
-            }
-
-            has_any_warning = any(values for values in all_warnings.values())
-
-            if has_any_warning:
-                for section_name, warnings_list in all_warnings.items():
-                    if warnings_list:
-                        st.markdown(f"**{section_name}**")
-                        st.warning("\n".join(f"- {w}" for w in warnings_list))
             else:
-                st.success("No validation warnings detected.")
+                if "engine" not in locals():
+                    engine = DataEngine()
 
+                agent_temps = AgentTemps(use_business_hours=False)
+
+                # TODO: remplacer {} par de vrais inputs utilisateur quand tu ajouteras le formulaire
+                user_metrics = {}
+
+                resolved_time = resolve_time_context(
+                    raw_data=raw_data,
+                    user_metrics=user_metrics,
+                    source_key=source_info["key"],
+                )
+
+                if resolved_time.warnings:
+                    st.warning("\n".join(f"- {w}" for w in resolved_time.warnings))
+
+                time_report = None
+                roi_metrics = None
+
+                if resolved_time.mode == "provided" and resolved_time.timestamp_col is None:
+                    time_report = agent_temps.build_time_metrics_from_user_input(user_metrics)
+
+                elif getattr(resolved_time, "duration_minutes_col", None) is not None:
+                    time_report = agent_temps.build_time_metrics_from_duration_column(
+                        raw_data=resolved_time.normalized_data,
+                        user_metrics=user_metrics,
+                        case_id_col=resolved_time.case_id_col or "case_id",
+                        activity_col=resolved_time.activity_col or "activity",
+                        duration_minutes_col=resolved_time.duration_minutes_col,
+                    )
+
+                elif getattr(resolved_time, "can_run_time_quantification", False):
+                    time_report = agent_temps.build_time_metrics_report(
+                        raw_data=resolved_time.normalized_data,
+                        user_metrics=user_metrics,
+                        case_id_col=resolved_time.case_id_col or "case_id",
+                        activity_col=resolved_time.activity_col or "activity",
+                        timestamp_col=resolved_time.timestamp_col or "timestamp",
+                        start_timestamp_col=resolved_time.start_timestamp_col,
+                        end_timestamp_col=resolved_time.end_timestamp_col,
+                    )
+
+                if time_report is not None:
+                    validate_time_metrics_report_or_raise(time_report)
+                    time_warnings = audit_time_metrics_report(time_report)
+                    time_precision_message = build_time_precision_message(time_report)
+
+                    st.info(time_precision_message)
+
+                    if time_warnings:
+                        st.warning("\n".join(f"- {w}" for w in time_warnings))
+
+                    if time_report.can_compute_partial_roi:
+                        roi_metrics = compute_roi_from_time_report(
+                            time_report=time_report,
+                            taux_horaire=taux_horaire,
+                            automation_rate=0.8,
+                            residual_manual_time_minutes=1.5,
+                        )
+                        validate_roi_metrics_or_raise(roi_metrics)
+                    else:
+                        st.warning(
+                            "Le workflow peut être analysé, mais le gain de temps chiffré reste indisponible "
+                            "faute de données temporelles suffisantes."
+                        )
+                else:
+                    time_precision_message = (
+                        "Analyse du workflow effectuée sans quantification temporelle fiable."
+                    )
+                    time_warnings = [
+                        resolved_time.user_message
+                        or "Les données temporelles sont insuffisantes pour un chiffrage crédible."
+                    ]
+                    st.info(time_precision_message)
+                    st.warning("\n".join(f"- {w}" for w in time_warnings))
+
+                df_norm = engine.normalize(raw_data)
+                df_clustered = engine.vectorize_and_cluster(df_norm, min_cluster_size, epsilon)
+                payload = engine.generate_payload(df_clustered, source_info["title"])
+
+                diagnostic, lat_analyst, meta_analyst = analyze(
+                    payload,
+                    source_info["title"],
+                    roi_metrics,
+                )
+
+                if roi_metrics is not None:
+                    validate_diagnostic_or_raise(diagnostic, roi_metrics=roi_metrics)
+                else:
+                    validate_diagnostic_or_raise(diagnostic)
+
+                diagnostic_warnings = audit_diagnostic(diagnostic)
+            tracker.record("Analyst", lat_analyst, meta_analyst)
+            progress.progress(33, text="Mapper in progress...")
+
+            agent_card(col_a1, "🔬", "Analyst", "Diagnosis done", "done")
+            agent_card(col_a2, "🗺", "Mapper", "Building workflow...", "active")
+
+            workflow, resume, lat_mapper, meta_mapper = map_workflow(diagnostic)
+            validate_workflow_or_raise(workflow, diagnostic=diagnostic)
+            workflow_warnings = audit_workflow(workflow, diagnostic=diagnostic)
+
+            tracker.record("Mapper", lat_mapper, meta_mapper)
+            progress.progress(66, text="Advisor in progress...")
+
+            agent_card(col_a2, "🗺", "Mapper", "Workflow built", "done")
+            agent_card(col_a3, "💡", "Advisor", "Selecting tools...", "active")
+
+            recommendations, lat_advisor, meta_advisor = advise(workflow)
+
+            tool_catalog = load_json("tools_catalog.json")
+            validate_advisor_report_or_raise(recommendations, workflow, tool_catalog)
+            advisor_warnings = audit_advisor_report(recommendations, workflow, tool_catalog)
+
+            tracker.record("Advisor", lat_advisor, meta_advisor)
+            progress.progress(100, text="Analysis complete ✓")
+
+            st.session_state["results"] = {
+                "diagnosis": diagnostic,
+                "workflow": workflow,
+                "transformation_resume": resume,
+                "recommendations": recommendations,
+                "telemetry": tracker.get_summary(),
+                "time_report": time_report,
+                "time_warnings": time_warnings,
+                "time_precision_message": time_precision_message,
+                "diagnostic_warnings": diagnostic_warnings,
+                "workflow_warnings": workflow_warnings,
+                "advisor_warnings": advisor_warnings,
+            }
+            st.session_state["view"] = "results"
+            time.sleep(0.3)
+            st.rerun()
+
+        except Exception as e:
+            st.error(
+                "The analysis could not be completed with the current data. "
+                "Please review the input data or try a more structured source."
+            )
+            if DEBUG_MODE:
+                st.exception(e)
+                st.error(
+                    "The analysis could not be completed with the current data. "
+                    "Please review the input data or try a more structured source."
+                )
+                if DEBUG_MODE:
+                    st.exception(e)

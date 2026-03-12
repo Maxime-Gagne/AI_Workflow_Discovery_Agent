@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional, Literal, Dict, Union
 from pydantic import BaseModel, Field, model_validator, field_validator
-from typing import Literal, Optional, Union
 
 
 ConfidenceLevel = Literal["provided", "observed", "estimated", "missing"]
@@ -164,13 +163,35 @@ class MetriquesCles(BaseModel):
     taux_manuel: str = Field(..., description="Pourcentage d'étapes manuelles")
     principale_friction: str
 
+class RoiConfidence(BaseModel):
+    roi_mode: Literal["full", "partial", "blocked"] = Field(
+        ...,
+        description="Mode de confiance du ROI déterministe."
+    )
+    monthly_volume: ConfidenceLevel = Field(..., description="Niveau de confiance de monthly_volume.")
+    manual_time_minutes: ConfidenceLevel = Field(..., description="Niveau de confiance de manual_time_minutes.")
+    activity_duration_minutes: ConfidenceLevel = Field(..., description="Niveau de confiance de activity_duration_minutes.")
+    case_cycle_time_minutes: ConfidenceLevel = Field(..., description="Niveau de confiance de case_cycle_time_minutes.")
+    waiting_time_minutes: ConfidenceLevel = Field(..., description="Niveau de confiance de waiting_time_minutes.")
+
+
 class GainsEstimes(BaseModel):
     heures_economisees_par_mois: float = Field(..., description="Estimation mathématique stricte des heures économisées mensuellement")
     economies_mensuelles_devise: float = Field(..., description="Économies brutes (heures_economisees_par_mois * taux_horaire fourni)")
     projection_annuelle: float = Field(..., description="Projection sur 12 mois : economies_mensuelles_devise * 12")
     mois_retour_investissement: Optional[float] = Field(None, description="Coût estimé implémentation / economies_mensuelles_devise. Null si non calculable.")
     detail_du_calcul: str = Field(..., description="Formule mathématique courte justifiant le calcul du ROI")
+    assumptions: List[str] = Field(..., description="Hypothèses déterministes utilisées pour calculer le ROI")
+    confidence: RoiConfidence = Field(..., description="Confiance et provenance des métriques critiques du ROI")
     principales_opportunites: List[str] = Field(..., description="Liste de 3 opportunités majeures")
+
+class RoiConfidence(BaseModel):
+    roi_mode: Literal["full", "partial", "blocked"]
+    monthly_volume: ConfidenceLevel
+    manual_time_minutes: ConfidenceLevel
+    activity_duration_minutes: ConfidenceLevel
+    case_cycle_time_minutes: ConfidenceLevel
+    waiting_time_minutes: ConfidenceLevel
 
 class DiagnosticAnalyste(BaseModel):
     titre_processus: str = Field(..., description="Nom court du processus détecté")
@@ -178,7 +199,13 @@ class DiagnosticAnalyste(BaseModel):
     etapes_actuelles: List[EtapeActuelle]
     metriques_cles: MetriquesCles
     potentiel_automatisation: Literal["faible", "moyen", "élevé", "très élevé"]
-    gains_estimes: GainsEstimes
+    gains_estimes: Optional[GainsEstimes] = Field(
+        default=None,
+        description=(
+            "Bloc ROI déterministe. Peut être absent si aucune métrique ROI déterministe "
+            "n'est disponible ou si le diagnostic est purement structurel."
+        ),
+    )
 
 # ==========================================
 # 2. Contrats de l'Agent Mapper

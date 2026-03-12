@@ -3,11 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 import pm4py
-from pm4py.statistics.sojourn_time.pandas import get as pd_sojourn_time
 import pandas as pd
+
+try:
+    from pm4py.statistics.sojourn_time.pandas import get as pd_sojourn_time
+except Exception:
+    pd_sojourn_time = None
 
 from schemas import TimeMetric, TimeMetricsReport
 from validators.time_validators import validate_time_metrics_report_or_raise
+
 
 
 @dataclass
@@ -474,29 +479,34 @@ class AgentTemps:
 
         # 1) Sojourn / durée d'activité si start_timestamp exploitable
         if mapping.start_timestamp_col and mapping.start_timestamp_col in work.columns:
-            try:
-                params = {
-                    pd_sojourn_time.Parameters.ACTIVITY_KEY: mapping.activity_col,
-                    pd_sojourn_time.Parameters.START_TIMESTAMP_KEY: mapping.start_timestamp_col,
-                    pd_sojourn_time.Parameters.TIMESTAMP_KEY: mapping.timestamp_col,
-                    pd_sojourn_time.Parameters.BUSINESS_HOURS: self.use_business_hours,
-                }
+            if pd_sojourn_time is None:
+                result["warnings"].append(
+                    "PM4Py sojourn_time indisponible dans cette installation. "
+                    "Fallback sans durée d'activité PM4Py."
+                )
+            else:
+                try:
+                    params = {
+                        pd_sojourn_time.Parameters.ACTIVITY_KEY: mapping.activity_col,
+                        pd_sojourn_time.Parameters.START_TIMESTAMP_KEY: mapping.start_timestamp_col,
+                        pd_sojourn_time.Parameters.TIMESTAMP_KEY: mapping.timestamp_col,
+                        pd_sojourn_time.Parameters.BUSINESS_HOURS: self.use_business_hours,
+                    }
 
-                sojourn = pd_sojourn_time.apply(work, parameters=params)
+                    sojourn = pd_sojourn_time.apply(work, parameters=params)
 
-                # sojourn est généralement un dict {activity: seconds}
-                if sojourn:
-                    values_minutes = [
-                        float(v) / 60.0
-                        for v in sojourn.values()
-                        if v is not None and float(v) >= 0
-                    ]
-                    if values_minutes:
-                        result["activity_duration_median_minutes"] = round(
-                            float(pd.Series(values_minutes).median()), 2
-                        )
-            except Exception as e:
-                result["warnings"].append(f"PM4Py sojourn_time failed: {e}")
+                    if sojourn:
+                        values_minutes = [
+                            float(v) / 60.0
+                            for v in sojourn.values()
+                            if v is not None and float(v) >= 0
+                        ]
+                        if values_minutes:
+                            result["activity_duration_median_minutes"] = round(
+                                float(pd.Series(values_minutes).median()), 2
+                            )
+                except Exception as e:
+                    result["warnings"].append(f"PM4Py sojourn_time failed: {e}")
         else:
             result["warnings"].append(
                 "PM4Py sojourn_time skipped: start_timestamp absent."
@@ -728,6 +738,105 @@ class AgentTemps:
             manual_time_minutes=manual_time,
             waiting_time_minutes=waiting_time,
             warnings=["Rapport temporel construit à partir de métriques utilisateur."],
+            can_compute_full_roi=can_compute_full_roi,
+            can_compute_partial_roi=can_compute_partial_roi,
+        )
+        validate_time_metrics_report_or_raise(report)
+        return report
+
+
+    def build_time_metrics_from_duration_column(
+        self,
+        raw_data: Any,
+        case_id_col: str,
+        activity_col: str,
+        duration_minutes_col: str = "duration_minutes",
+        user_metrics: Optional[dict[str, Any]] = None,
+    ) -> TimeMetricsReport:
+        user_metrics = user_metrics or {}
+        df = self._to_dataframe(raw_data).copy()
+
+        required = [case_id_col, activity_col, duration_minutes_col]
+        missing = [col for col in required if col not in df.columns]
+        if missing:
+            raise AgentTempsError(f"Colonnes requises manquantes pour durée explicite: {missing}")
+
+        df[duration_minutes_col] = pd.to_numeric(df[duration_minutes_col], errors="coerce")
+        df = df.dropna(subset=[case_id_col, activity_col, duration_minutes_col])
+
+        if df.empty:
+            raise AgentTempsError("Aucune ligne exploitable après conversion de la durée explicite.")
+
+        median_duration = float(df[duration_minutes_col].median())
+        total_duration = float(df[duration_minutes_col].sum())
+
+        monthly_volume = user_metrics.get("monthly_volume")
+        if monthly_volume is not None:
+            monthly_volume_metric = TimeMetric(
+                name="monthly_volume",
+                unit="cases/month",
+                value=float(monthly_volume),
+                confidence_level="provided",
+                source="user_input",
+                hypothesis=None,
+                notes=["Valeur fournie explicitement par l'utilisateur."],
+            )
+        else:
+            monthly_volume_metric = TimeMetric(
+                name="monthly_volume",
+                unit="cases/month",
+                value=float(df[case_id_col].nunique()),
+                confidence_level="estimated",
+                source="rule_engine",
+                hypothesis="Approximation basée sur le nombre de cas observés dans l’échantillon.",
+                notes=["Aucun timestamp disponible pour mensualiser précisément le volume."],
+            )
+
+        activity_duration = TimeMetric(
+            name="activity_duration_minutes",
+            unit="minutes",
+            value=median_duration,
+            confidence_level="estimated",
+            source="source_duration_column",
+            hypothesis="Durée médiane basée sur la colonne explicite de durée fournie.",
+            notes=["Pas de start/end timestamp disponible."],
+        )
+
+        manual_time = self._build_manual_time_metric(activity_duration, user_metrics=user_metrics)
+
+        case_cycle_time = TimeMetric(
+            name="case_cycle_time_minutes",
+            unit="minutes",
+            value=total_duration,
+            confidence_level="estimated",
+            source="source_duration_column",
+            hypothesis="Approximation fondée sur la somme des durées observées.",
+            notes=["Sans timestamps de cas, le cycle exact reste approximatif."],
+        )
+
+        waiting_time = self._missing_metric(
+            name="waiting_time_minutes",
+            unit="minutes",
+            source="agent_temps",
+            notes=["Impossible de calculer le temps d'attente sans horodatages."],
+        )
+
+        critical = [monthly_volume_metric, activity_duration, manual_time]
+        levels = [m.confidence_level for m in critical]
+
+        can_compute_full_roi = all(level in {"provided", "observed"} for level in levels)
+        can_compute_partial_roi = (
+            all(level in {"provided", "observed", "estimated"} for level in levels)
+            and not any(level == "missing" for level in levels)
+        )
+
+        report = TimeMetricsReport(
+            monthly_volume=monthly_volume_metric,
+            activity_duration_minutes=activity_duration,
+            case_cycle_time_minutes=case_cycle_time,
+            manual_time_minutes=manual_time,
+            waiting_time_minutes=waiting_time,
+            warnings=["Rapport temporel construit à partir d’une colonne explicite de durée."],
             can_compute_full_roi=can_compute_full_roi,
             can_compute_partial_roi=can_compute_partial_roi,
         )

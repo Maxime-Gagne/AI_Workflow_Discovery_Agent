@@ -6,6 +6,17 @@ import pandas as pd
 
 ResolutionMode = Literal["provided", "observed", "estimated", "insufficient"]
 
+DURATION_MINUTES_CANDIDATES = [
+    "duration_minutes", "duree_minutes", "temps_minutes", "manual_time_minutes"
+]
+
+DURATION_HOURS_CANDIDATES = [
+    "duration_hours", "duree_heures", "temps_heures", "manual_time_hours"
+]
+
+DURATION_DAYS_CANDIDATES = [
+    "duration_days", "duree_jours", "duree_moyenne_jours", "temps_jours", "jours"
+]
 
 @dataclass
 class ResolvedTimeContext:
@@ -15,8 +26,11 @@ class ResolvedTimeContext:
     timestamp_col: Optional[str]
     start_timestamp_col: Optional[str]
     end_timestamp_col: Optional[str]
-    mode: ResolutionMode
-    requires_user_input: bool
+    duration_minutes_col: Optional[str] = None
+    mode: ResolutionMode = "insufficient"
+    requires_user_input: bool = False
+    can_run_workflow_analysis: bool = True
+    can_run_time_quantification: bool = False
     warnings: list[str] = field(default_factory=list)
     user_message: Optional[str] = None
 
@@ -26,7 +40,9 @@ CASE_ID_CANDIDATES = [
     "lead_id", "candidate_id", "client_id", "opportunity_id", "acteur"
 ]
 ACTIVITY_CANDIDATES = [
-    "activity", "action", "event", "step", "status", "content", "description", "label"
+    "activity", "action", "event", "step", "status",
+    "content", "description", "label",
+    "nom", "titre", "etape", "category"
 ]
 TIMESTAMP_CANDIDATES = [
     "timestamp", "created_at", "created", "date", "datetime", "time", "ts"
@@ -82,103 +98,72 @@ def resolve_time_context(
     end_timestamp_col = _pick_column(df, END_TIMESTAMP_CANDIDATES)
     case_id_col = _pick_column(df, CASE_ID_CANDIDATES)
 
+    duration_minutes_col = _pick_column(df, DURATION_MINUTES_CANDIDATES)
+    duration_hours_col = _pick_column(df, DURATION_HOURS_CANDIDATES)
+    duration_days_col = _pick_column(df, DURATION_DAYS_CANDIDATES)
+
     if activity_col is None:
         return ResolvedTimeContext(
-            normalized_data=[],
+            normalized_data=df.to_dict(orient="records"),
             case_id_col=None,
             activity_col=None,
             timestamp_col=None,
             start_timestamp_col=None,
             end_timestamp_col=None,
+            duration_minutes_col=None,
             mode="insufficient",
-            requires_user_input=True,
-            warnings=["Aucune colonne d’activité détectée."],
-            user_message=(
-                "Le pipeline n’a pas trouvé de champ décrivant les actions/étapes. "
-                "Ajoute une colonne de type action/activity/status ou fournis des métriques temporelles manuelles."
-            ),
-        )
-
-    # Cas 100% fourni par l'utilisateur
-    if timestamp_col is None and _has_minimum_user_metrics(user_metrics):
-        warnings.append("Aucun horodatage détecté : bascule en mode métriques fournies par l’utilisateur.")
-        return ResolvedTimeContext(
-            normalized_data=df.to_dict(orient="records"),
-            case_id_col=None,
-            activity_col=activity_col,
-            timestamp_col=None,
-            start_timestamp_col=None,
-            end_timestamp_col=None,
-            mode="provided",
             requires_user_input=False,
-            warnings=warnings,
-            user_message=None,
-        )
-
-    if timestamp_col is None:
-        return ResolvedTimeContext(
-            normalized_data=df.to_dict(orient="records"),
-            case_id_col=None,
-            activity_col=activity_col,
-            timestamp_col=None,
-            start_timestamp_col=None,
-            end_timestamp_col=None,
-            mode="insufficient",
-            requires_user_input=True,
-            warnings=["Aucun horodatage détecté."],
+            can_run_workflow_analysis=True,
+            can_run_time_quantification=False,
+            warnings=[
+                "Aucune colonne d’activité détectée pour la quantification temporelle."
+            ],
             user_message=(
-                "Le pipeline ne dispose pas d’horodatages exploitables. "
-                "Ajoute des timestamps ou fournis au minimum : volume mensuel et temps manuel par tâche."
+                "L’analyse structurelle du workflow continue, "
+                "mais la quantification du temps est ignorée faute de champ activité explicite."
             ),
         )
-
     work = df.copy()
 
-    # Canonicalisation activity
     if activity_col != "activity":
         work["activity"] = work[activity_col]
         activity_col = "activity"
 
-    # Canonicalisation timestamp
-    if timestamp_col != "timestamp":
-        work["timestamp"] = work[timestamp_col]
-        timestamp_col = "timestamp"
+    # Cas A — timestamps observables
+    if timestamp_col is not None:
+        if timestamp_col != "timestamp":
+            work["timestamp"] = work[timestamp_col]
+            timestamp_col = "timestamp"
 
-    # Canonicalisation start/end si présents
-    if start_timestamp_col:
-        if start_timestamp_col != "start_timestamp":
+        if start_timestamp_col and start_timestamp_col != "start_timestamp":
             work["start_timestamp"] = work[start_timestamp_col]
             start_timestamp_col = "start_timestamp"
 
-    if end_timestamp_col:
-        if end_timestamp_col != "end_timestamp":
+        if end_timestamp_col and end_timestamp_col != "end_timestamp":
             work["end_timestamp"] = work[end_timestamp_col]
             end_timestamp_col = "end_timestamp"
 
-    # Case ID : si absent, on synthétise un seul cas global
-    if case_id_col is None:
-        work["case_id"] = "global_case_1"
-        case_id_col = "case_id"
-        warnings.append(
-            "Aucun identifiant de cas détecté : un case_id global a été synthétisé. "
-            "Les métriques de cycle resteront approximatives."
-        )
-        mode: ResolutionMode = "estimated"
-    else:
-        if case_id_col != "case_id":
-            work["case_id"] = work[case_id_col]
+        if case_id_col is None:
+            work["case_id"] = "global_case_1"
             case_id_col = "case_id"
-        mode = "observed"
+            warnings.append(
+                "Aucun identifiant de cas détecté : un case_id global a été synthétisé. "
+                "Les métriques de cycle resteront approximatives."
+            )
+            mode: ResolutionMode = "estimated"
+        else:
+            if case_id_col != "case_id":
+                work["case_id"] = work[case_id_col]
+                case_id_col = "case_id"
+            mode = "observed"
 
-    if start_timestamp_col is None:
-        warnings.append(
-            "Aucun start_timestamp détecté : durée d’activité individuelle non directement observable."
-        )
-        if mode == "observed":
-            mode = "estimated"
+        if start_timestamp_col is None:
+            warnings.append(
+                "Aucun start_timestamp détecté : durée d’activité individuelle non directement observable."
+            )
+            if mode == "observed":
+                mode = "estimated"
 
-    # SOP : pas de magie temporelle purement textuelle
-    if source_key == "sop_text" and not _has_minimum_user_metrics(user_metrics):
         return ResolvedTimeContext(
             normalized_data=work.to_dict(orient="records"),
             case_id_col=case_id_col,
@@ -186,24 +171,147 @@ def resolve_time_context(
             timestamp_col=timestamp_col,
             start_timestamp_col=start_timestamp_col,
             end_timestamp_col=end_timestamp_col,
-            mode="insufficient",
-            requires_user_input=True,
-            warnings=warnings + ["Mode SOP sans métriques temporelles utilisateur."],
-            user_message=(
-                "Le mode SOP ne peut pas produire un chiffrage crédible sans métriques temporelles manuelles. "
-                "Ajoute au minimum : volume mensuel et temps manuel par tâche."
-            ),
+            duration_minutes_col=None,
+            mode=mode,
+            requires_user_input=False,
+            can_run_workflow_analysis=True,
+            can_run_time_quantification=True,
+            warnings=warnings,
+            user_message=None,
         )
 
+    # Cas B — durée explicite en minutes
+    if duration_minutes_col is not None:
+        if duration_minutes_col != "duration_minutes":
+            work["duration_minutes"] = pd.to_numeric(work[duration_minutes_col], errors="coerce")
+            duration_minutes_col = "duration_minutes"
+
+        if case_id_col is None:
+            work["case_id"] = "global_case_1"
+            case_id_col = "case_id"
+
+        if case_id_col != "case_id":
+            work["case_id"] = work[case_id_col]
+            case_id_col = "case_id"
+
+        warnings.append(
+            "Aucun horodatage détecté, mais une durée explicite en minutes a été trouvée. "
+            "La quantification temporelle restera partielle."
+        )
+
+        return ResolvedTimeContext(
+            normalized_data=work.to_dict(orient="records"),
+            case_id_col=case_id_col,
+            activity_col=activity_col,
+            timestamp_col=None,
+            start_timestamp_col=None,
+            end_timestamp_col=None,
+            duration_minutes_col="duration_minutes",
+            mode="estimated",
+            requires_user_input=False,
+            can_run_workflow_analysis=True,
+            can_run_time_quantification=True,
+            warnings=warnings,
+            user_message=None,
+        )
+
+    # Cas C — durée explicite en heures
+    if duration_hours_col is not None:
+        work["duration_minutes"] = pd.to_numeric(work[duration_hours_col], errors="coerce") * 60.0
+        if case_id_col is None:
+            work["case_id"] = "global_case_1"
+            case_id_col = "case_id"
+        if case_id_col != "case_id":
+            work["case_id"] = work[case_id_col]
+            case_id_col = "case_id"
+
+        warnings.append(
+            "Aucun horodatage détecté, mais une durée explicite en heures a été trouvée. "
+            "La quantification temporelle restera partielle."
+        )
+
+        return ResolvedTimeContext(
+            normalized_data=work.to_dict(orient="records"),
+            case_id_col=case_id_col,
+            activity_col=activity_col,
+            timestamp_col=None,
+            start_timestamp_col=None,
+            end_timestamp_col=None,
+            duration_minutes_col="duration_minutes",
+            mode="estimated",
+            requires_user_input=False,
+            can_run_workflow_analysis=True,
+            can_run_time_quantification=True,
+            warnings=warnings,
+            user_message=None,
+        )
+
+    # Cas D — durée explicite en jours
+    if duration_days_col is not None:
+        work["duration_minutes"] = pd.to_numeric(work[duration_days_col], errors="coerce") * 24.0 * 60.0
+        if case_id_col is None:
+            work["case_id"] = "global_case_1"
+            case_id_col = "case_id"
+        if case_id_col != "case_id":
+            work["case_id"] = work[case_id_col]
+            case_id_col = "case_id"
+
+        warnings.append(
+            "Aucun horodatage détecté, mais une durée explicite en jours a été trouvée. "
+            "La quantification temporelle restera partielle."
+        )
+
+        return ResolvedTimeContext(
+            normalized_data=work.to_dict(orient="records"),
+            case_id_col=case_id_col,
+            activity_col=activity_col,
+            timestamp_col=None,
+            start_timestamp_col=None,
+            end_timestamp_col=None,
+            duration_minutes_col="duration_minutes",
+            mode="estimated",
+            requires_user_input=False,
+            can_run_workflow_analysis=True,
+            can_run_time_quantification=True,
+            warnings=warnings,
+            user_message=None,
+        )
+
+    # Cas E — aucune structure temps, mais métriques user minimales
+    if _has_minimum_user_metrics(user_metrics):
+        warnings.append("Aucune structure temporelle détectée : bascule en mode métriques fournies par l’utilisateur.")
+        return ResolvedTimeContext(
+            normalized_data=work.to_dict(orient="records"),
+            case_id_col=None,
+            activity_col=activity_col,
+            timestamp_col=None,
+            start_timestamp_col=None,
+            end_timestamp_col=None,
+            duration_minutes_col=None,
+            mode="provided",
+            requires_user_input=False,
+            can_run_workflow_analysis=True,
+            can_run_time_quantification=True,
+            warnings=warnings,
+            user_message=None,
+        )
+
+    # Cas F — workflow possible, quantification insuffisante
     return ResolvedTimeContext(
         normalized_data=work.to_dict(orient="records"),
-        case_id_col=case_id_col,
+        case_id_col=None,
         activity_col=activity_col,
-        timestamp_col=timestamp_col,
-        start_timestamp_col=start_timestamp_col,
-        end_timestamp_col=end_timestamp_col,
-        mode=mode,
+        timestamp_col=None,
+        start_timestamp_col=None,
+        end_timestamp_col=None,
+        duration_minutes_col=None,
+        mode="insufficient",
         requires_user_input=False,
-        warnings=warnings,
-        user_message=None,
+        can_run_workflow_analysis=True,
+        can_run_time_quantification=False,
+        warnings=["Aucune donnée temporelle exploitable détectée."],
+        user_message=(
+            "L’analyse structurelle du workflow reste possible, "
+            "mais le chiffrage du gain de temps sera limité ou indisponible."
+        ),
     )

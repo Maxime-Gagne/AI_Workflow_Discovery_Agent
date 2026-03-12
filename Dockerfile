@@ -27,6 +27,11 @@ RUN mkdir -p /app/.cache && chown -R appuser:appgroup /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN python - <<'PY'
+import pm4py
+print("PM4Py version:", getattr(pm4py, "__version__", "UNKNOWN"))
+print("PM4Py file:", getattr(pm4py, "__file__", "UNKNOWN"))
+PY
 # Copie du code source avec attribution immédiate des droits
 COPY --chown=appuser:appgroup . .
 
